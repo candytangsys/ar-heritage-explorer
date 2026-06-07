@@ -165,7 +165,21 @@ def save_landmark(lm_id):
     conn.commit()
     conn.close()
     return redirect(url_for('admin_dashboard'))
+@app.route('/ar/marker/<int:landmark_id>')
+def ar_marker(landmark_id):
+    conn = get_db()
+    lm = conn.execute("SELECT * FROM landmarks WHERE id = ?", (landmark_id,)).fetchone()
+    conn.close()
+    if not lm:
+        return "找不到此地標", 404
+    return render_template('ar_marker.html', lm=lm)
 
+@app.route('/ar/gps')
+def ar_gps():
+    conn = get_db()
+    landmarks = conn.execute("SELECT id, name_zh, lat, lng FROM landmarks").fetchall()
+    conn.close()
+    return render_template('ar_gps.html', landmarks=[dict(r) for r in landmarks])
 if __name__ == '__main__':
     init_db()
     app.run(debug=True)

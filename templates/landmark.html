@@ -53,6 +53,19 @@
 </head>
 <body>
   <a href="/" class="back">← 返回地圖</a>
+<div style="display:flex; gap:10px; padding: 0 24px 14px; flex-wrap:wrap;">
+  <a href="/ar/marker/{{ lm.id }}"
+     style="background:#4fc3f7; color:#0f1923; padding:10px 20px; border-radius:8px;
+            font-size:14px; font-weight:700; text-decoration:none;">
+    📷 AR Marker 掃描
+  </a>
+  <a href="/ar/gps"
+     style="background:rgba(79,195,247,0.12); color:#4fc3f7; padding:10px 20px;
+            border-radius:8px; font-size:14px; font-weight:600; text-decoration:none;
+            border:1px solid rgba(79,195,247,0.3);">
+    📡 GPS AR 探索
+  </a>
+</div>
 
   {% if lm.image_path %}
     <img src="/static/{{ lm.image_path }}" class="hero" alt="{{ lm.name_zh }}">
