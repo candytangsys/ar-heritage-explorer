@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>管理員登入</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f1923;
+      display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 40px 36px; width: 360px;
+    }
+    h1 { color: #4fc3f7; font-size: 22px; margin-bottom: 6px; }
+    .sub { color: rgba(255,255,255,0.4); font-size: 13px; margin-bottom: 28px; }
+    label { display: block; font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 6px; }
+    input {
+      width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+      color: #fff; font-size: 15px; margin-bottom: 18px; outline: none;
+    }
+    input:focus { border-color: #4fc3f7; }
+    button {
+      width: 100%; padding: 12px; background: #4fc3f7; color: #0f1923;
+      border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;
+    }
+    button:hover { background: #0288d1; color: #fff; }
+    .error { color: #ef5350; font-size: 13px; margin-bottom: 14px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>管理員登入</h1>
+    <div class="sub">AR Heritage Explorer 後台</div>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="error">{{ messages[0] }}</div>
+      {% endif %}
+    {% endwith %}
+    <form method="POST">
+      <label>帳號</label>
+      <input type="text" name="username" required autofocus>
+      <label>密碼</label>
+      <input type="password" name="password" required>
+      <button type="submit">登入</button>
+    </form>
+  </div>
+</body>
+</html>

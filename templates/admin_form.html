@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ '編輯' if lm else '新增' }}地標</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f1923; color: #fff; }
+    header {
+      background: rgba(15,25,35,0.98); border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 14px 28px; display: flex; align-items: center; gap: 16px;
+    }
+    header a { color: #4fc3f7; text-decoration: none; font-size: 14px; }
+    header h1 { font-size: 18px; font-weight: 600; }
+    .container { max-width: 720px; margin: 0 auto; padding: 32px 24px; }
+    .section-title {
+      font-size: 12px; text-transform: uppercase; letter-spacing: 2px;
+      color: rgba(255,255,255,0.35); margin: 28px 0 14px;
+      padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .field { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 6px; }
+    input, textarea, select {
+      width: 100%; padding: 10px 14px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: #fff; font-size: 14px; outline: none;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    input:focus, textarea:focus { border-color: #4fc3f7; }
+    textarea { resize: vertical; min-height: 90px; }
+    .btn-submit {
+      margin-top: 28px; padding: 12px 32px; background: #4fc3f7; color: #0f1923;
+      border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;
+    }
+    .btn-submit:hover { background: #0288d1; color: #fff; }
+    .quiz-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/admin">← 返回列表</a>
+    <h1>{{ '編輯地標' if lm else '新增地標' }}</h1>
+  </header>
+  <div class="container">
+    <form method="POST" enctype="multipart/form-data">
+
+      <div class="section-title">基本資訊</div>
+      <div class="row">
+        <div class="field">
+          <label>地標名稱（中文）</label>
+          <input type="text" name="name_zh" value="{{ lm.name_zh if lm else '' }}" required>
+        </div>
+        <div class="field">
+          <label>地標名稱（英文）</label>
+          <input type="text" name="name_en" value="{{ lm.name_en if lm else '' }}" required>
+        </div>
+      </div>
+      <div class="field">
+        <label>地址</label>
+        <input type="text" name="address" value="{{ lm.address if lm else '' }}">
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>緯度 (lat)</label>
+          <input type="number" step="any" name="lat" value="{{ lm.lat if lm else '' }}" required placeholder="例：25.1763">
+        </div>
+        <div class="field">
+          <label>經度 (lng)</label>
+          <input type="number" step="any" name="lng" value="{{ lm.lng if lm else '' }}" required placeholder="例：121.4330">
+        </div>
+      </div>
+
+      <div class="section-title">介紹內容</div>
+      <div class="field">
+        <label>歷史介紹（中文）</label>
+        <textarea name="description_zh">{{ lm.description_zh if lm else '' }}</textarea>
+      </div>
+      <div class="field">
+        <label>歷史介紹（英文）</label>
+        <textarea name="description_en">{{ lm.description_en if lm else '' }}</textarea>
+      </div>
+      <div class="field">
+        <label>歷史人物小故事</label>
+        <textarea name="history_story">{{ lm.history_story if lm else '' }}</textarea>
+      </div>
+
+      <div class="section-title">封面圖片</div>
+      <div class="field">
+        <label>上傳圖片（jpg / png / webp）</label>
+        <input type="file" name="image" accept="image/*">
+        {% if lm and lm.image_path %}
+          <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,0.4);">
+            目前圖片：{{ lm.image_path }}（重新上傳才會更換）
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="section-title">歷史小測驗</div>
+      <div class="field">
+        <label>題目</label>
+        <input type="text" name="quiz_question" value="{{ lm.quiz_question if lm else '' }}">
+      </div>
+      <div class="quiz-opts">
+        <div class="field"><label>選項 A</label><input type="text" name="quiz_a" value="{{ lm.quiz_a if lm else '' }}"></div>
+        <div class="field"><label>選項 B</label><input type="text" name="quiz_b" value="{{ lm.quiz_b if lm else '' }}"></div>
+        <div class="field"><label>選項 C</label><input type="text" name="quiz_c" value="{{ lm.quiz_c if lm else '' }}"></div>
+        <div class="field"><label>選項 D</label><input type="text" name="quiz_d" value="{{ lm.quiz_d if lm else '' }}"></div>
+      </div>
+      <div class="field">
+        <label>正確答案</label>
+        <select name="quiz_answer">
+          {% for opt in ['A','B','C','D'] %}
+            <option value="{{ opt }}" {{ 'selected' if lm and lm.quiz_answer == opt else '' }}>{{ opt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="submit" class="btn-submit">💾 儲存地標</button>
+    </form>
+  </div>
+</body>
+</html>

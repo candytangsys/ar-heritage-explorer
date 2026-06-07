@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ lm.name_zh }} - AR Heritage Explorer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f1923; color: #fff; min-height: 100vh; }
+    .back { display: inline-flex; align-items: center; gap: 6px; padding: 14px 24px;
+      color: #4fc3f7; text-decoration: none; font-size: 14px; }
+    .back:hover { color: #fff; }
+    .hero {
+      width: 100%; height: 260px; object-fit: cover;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .hero-placeholder {
+      width: 100%; height: 260px; background: linear-gradient(135deg, #1a2634, #0d47a1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px; color: rgba(255,255,255,0.2);
+    }
+    .container { max-width: 720px; margin: 0 auto; padding: 32px 24px; }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .en { font-size: 15px; color: rgba(255,255,255,0.4); margin-bottom: 8px; }
+    .address { font-size: 13px; color: #4fc3f7; margin-bottom: 28px; }
+    .section { margin-bottom: 28px; }
+    .section h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 2px;
+      color: rgba(255,255,255,0.35); margin-bottom: 10px; }
+    .section p { font-size: 15px; line-height: 1.8; color: rgba(255,255,255,0.8); }
+    .story-box {
+      background: rgba(79,195,247,0.08); border: 1px solid rgba(79,195,247,0.2);
+      border-radius: 10px; padding: 16px 20px;
+    }
+    .story-box p { color: rgba(255,255,255,0.75); }
+
+    /* Quiz */
+    .quiz-box {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 24px;
+    }
+    .quiz-box h2 { font-size: 16px; color: #fff; margin-bottom: 16px; letter-spacing: 0; text-transform: none; }
+    .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .opt-btn {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      color: #fff; padding: 12px; border-radius: 8px; cursor: pointer;
+      font-size: 14px; text-align: left; transition: all 0.2s;
+    }
+    .opt-btn:hover { background: rgba(79,195,247,0.15); border-color: #4fc3f7; }
+    .opt-btn.correct { background: rgba(76,175,80,0.2); border-color: #4caf50; color: #81c784; }
+    .opt-btn.wrong { background: rgba(244,67,54,0.2); border-color: #f44336; color: #e57373; }
+    .quiz-result { font-size: 14px; min-height: 20px; color: #4fc3f7; }
+  </style>
+</head>
+<body>
+  <a href="/" class="back">← 返回地圖</a>
+
+  {% if lm.image_path %}
+    <img src="/static/{{ lm.image_path }}" class="hero" alt="{{ lm.name_zh }}">
+  {% else %}
+    <div class="hero-placeholder">🏛</div>
+  {% endif %}
+
+  <div class="container">
+    <h1>{{ lm.name_zh }}</h1>
+    <div class="en">{{ lm.name_en }}</div>
+    <div class="address">📍 {{ lm.address }}</div>
+
+    <div class="section">
+      <h2>地標介紹</h2>
+      <p>{{ lm.description_zh }}</p>
+      <br>
+      <p style="color:rgba(255,255,255,0.4); font-size:14px;">{{ lm.description_en }}</p>
+    </div>
+
+    {% if lm.history_story %}
+    <div class="section">
+      <h2>歷史故事</h2>
+      <div class="story-box"><p>{{ lm.history_story }}</p></div>
+    </div>
+    {% endif %}
+
+    {% if lm.quiz_question %}
+    <div class="quiz-box">
+      <h2>🎯 歷史小測驗</h2>
+      <p style="font-size:15px; margin-bottom:16px; color:rgba(255,255,255,0.85);">{{ lm.quiz_question }}</p>
+      <div class="options">
+        <button class="opt-btn" onclick="answer(this, 'A', '{{ lm.quiz_answer }}')">A. {{ lm.quiz_a }}</button>
+        <button class="opt-btn" onclick="answer(this, 'B', '{{ lm.quiz_answer }}')">B. {{ lm.quiz_b }}</button>
+        <button class="opt-btn" onclick="answer(this, 'C', '{{ lm.quiz_answer }}')">C. {{ lm.quiz_c }}</button>
+        <button class="opt-btn" onclick="answer(this, 'D', '{{ lm.quiz_answer }}')">D. {{ lm.quiz_d }}</button>
+      </div>
+      <div class="quiz-result" id="quiz-result"></div>
+    </div>
+    {% endif %}
+  </div>
+
+  <script>
+    let answered = false;
+    function answer(btn, choice, correct) {
+      if (answered) return;
+      answered = true;
+      const btns = document.querySelectorAll('.opt-btn');
+      btns.forEach(b => b.disabled = true);
+      if (choice === correct) {
+        btn.classList.add('correct');
+        document.getElementById('quiz-result').textContent = '✅ 答對了！你對這段歷史很熟悉！';
+      } else {
+        btn.classList.add('wrong');
+        btns.forEach(b => { if (b.textContent.startsWith(correct)) b.classList.add('correct'); });
+        document.getElementById('quiz-result').textContent = '❌ 答錯了，正確答案是 ' + correct;
+      }
+    }
+  </script>
+</body>
+</html>

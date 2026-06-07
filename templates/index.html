@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AR Heritage Explorer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f1923; color: #fff; }
+    header {
+      position: fixed; top: 0; width: 100%; z-index: 1000;
+      background: rgba(15,25,35,0.95); backdrop-filter: blur(10px);
+      padding: 14px 24px; display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    header .logo { font-size: 20px; font-weight: 700; color: #4fc3f7; letter-spacing: 1px; }
+    header .sub { font-size: 13px; color: rgba(255,255,255,0.5); }
+    #map { height: 100vh; width: 100%; padding-top: 56px; }
+    .leaflet-container { background: #1a2634; }
+    .popup-card { min-width: 200px; }
+    .popup-card h3 { font-size: 15px; color: #0f1923; margin-bottom: 4px; }
+    .popup-card p { font-size: 12px; color: #555; margin-bottom: 10px; }
+    .popup-card a {
+      display: inline-block; background: #4fc3f7; color: #fff;
+      padding: 6px 14px; border-radius: 6px; font-size: 13px;
+      text-decoration: none; font-weight: 500;
+    }
+    .popup-card a:hover { background: #0288d1; }
+    .popup-img { width: 100%; height: 100px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="logo">AR Heritage Explorer</div>
+      <div class="sub">歷史地標探索地圖</div>
+    </div>
+  </header>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([25.05, 121.55], 11);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const icon = L.divIcon({
+      html: `<div style="background:#4fc3f7;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 8px #4fc3f7;"></div>`,
+      className: '', iconAnchor: [8, 8]
+    });
+
+    fetch('/api/landmarks')
+      .then(r => r.json())
+      .then(landmarks => {
+        landmarks.forEach(lm => {
+          const img = lm.image_path
+            ? `<img src="/static/${lm.image_path}" class="popup-img"/>`
+            : '';
+          const popup = `
+            <div class="popup-card">
+              ${img}
+              <h3>${lm.name_zh}</h3>
+              <p>${lm.name_en}</p>
+              <a href="/landmark/${lm.id}">探索此地標 →</a>
+            </div>`;
+          L.marker([lm.lat, lm.lng], { icon })
+            .addTo(map)
+            .bindPopup(popup);
+        });
+      });
+  </script>
+</body>
+</html>
