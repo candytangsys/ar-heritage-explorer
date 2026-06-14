@@ -93,10 +93,9 @@ ar-heritage-explorer/
     ├── admin_login.html    ← 管理員登入
     ├── admin_dashboard.html← 後台地標列表
     ├── admin_form.html     ← 新增/編輯地標表單
-    ├── game_start.html     ← 遊戲開始/暱稱輸入（規劃中）
-    ├── game_map.html       ← 遊戲地圖（規劃中）
-    ├── game_unlock.html    ← 地標解鎖動畫（規劃中）
-    └── game_profile.html   ← 玩家成就頁（規劃中）
+    ├── game_start.html     ← 遊戲開始/暱稱輸入 ✅
+    ├── game_map.html       ← 遊戲地圖 ✅
+    └── game_profile.html   ← 玩家成就頁 ✅
 ```
 
 ---
@@ -214,7 +213,7 @@ ar-heritage-explorer/
 | username | TEXT UNIQUE | 帳號 |
 | password_hash | TEXT | Werkzeug 雜湊密碼 |
 
-### 5.3 players 表（玩家資料）【規劃中】
+### 5.3 players 表（玩家資料）✅ 已實現
 
 | 欄位名稱 | 型別 | 說明 |
 |---------|------|------|
@@ -224,7 +223,7 @@ ar-heritage-explorer/
 | total_points | INTEGER | 累積總點數 |
 | created_at | TIMESTAMP | 建立時間 |
 
-### 5.4 player_progress 表（遊戲進度）【規劃中】
+### 5.4 player_progress 表（遊戲進度）✅ 已實現
 
 | 欄位名稱 | 型別 | 說明 |
 |---------|------|------|
@@ -237,7 +236,7 @@ ar-heritage-explorer/
 
 ---
 
-## 六、遊戲系統規格【Phase 3 規劃中】
+## 六、遊戲系統規格【Phase 3 ✅ 完成】
 
 ### 6.1 遊戲名稱
 
@@ -245,7 +244,7 @@ ar-heritage-explorer/
 
 ### 6.2 核心玩法
 
-玩家在校園實際走動，GPS 偵測到距離地標 50 公尺內自動解鎖，答對歷史問題獲得點數，蒐集全部地標達成成就。
+玩家透過遊戲系統在校園內探索 9 個地標，作答歷史測驗後自動解鎖，累積點數並達成成就。
 
 ### 6.3 點數規則
 
@@ -266,20 +265,20 @@ ar-heritage-explorer/
 | 🏆 淡江通 | 解鎖全部地標 |
 | ⭐ 淡江達人 | 全部地標滿分通關 |
 
-### 6.5 遊戲頁面規劃
+### 6.5 遊戲頁面（已實現）
 
-| 頁面 | 功能 |
-|------|------|
-| game_start.html | 輸入暱稱、產生 device_id、開始遊戲 |
-| game_map.html | 校園地圖，已解鎖地標發光顯示，未解鎖灰色 |
-| game_unlock.html | 走近地標觸發解鎖動畫 + 歷史問題 + 點數動畫 |
-| game_profile.html | 個人成就、點數、蒐集進度、稱號顯示 |
+| 頁面 | 功能 | 狀態 |
+|------|------|------|
+| game_start.html | 輸入暱稱、產生 device_id、開始遊戲 | ✅ |
+| game_map.html | 校園地圖，已解鎖地標發光顯示，未解鎖灰色 | ✅ |
+| game_profile.html | 個人成就、點數、蒐集進度、稱號顯示 | ✅ |
+| game_unlock.html | 解鎖動畫頁面（規劃但未實現） | 📋 |
 
 ---
 
 ## 七、API 路由規格
 
-### 現有路由
+### 現有路由（✅ 已實現）
 
 | 方法 | 路由 | 說明 |
 |------|------|------|
@@ -298,7 +297,7 @@ ar-heritage-explorer/
 | POST | /admin/landmark/<id>/edit | 更新地標 |
 | POST | /admin/landmark/<id>/delete | 刪除地標 |
 
-### 規劃中路由（Phase 3）
+### 遊戲系統 API（✅ 已實現）
 
 | 方法 | 路由 | 說明 |
 |------|------|------|
@@ -306,6 +305,7 @@ ar-heritage-explorer/
 | GET | /api/game/progress | 取得玩家進度 |
 | POST | /api/game/unlock | 解鎖地標 + 提交答題結果 |
 | GET | /game | 遊戲地圖首頁 |
+| GET | /game/map | 遊戲地圖（Leaflet） |
 | GET | /game/profile | 玩家成就頁 |
 
 ---
@@ -329,23 +329,21 @@ ar-heritage-explorer/
 |-------|------|------|
 | Phase 1 | 地圖 + 地標詳細頁 + 後台 CRUD + 小測驗 | ✅ 完成 |
 | Phase 2 | AR Marker 掃描 + GPS AR 探索 | ✅ 完成 |
-| Phase 3 | 遊戲系統核心實現 + 校園地標資料 | ✅ 系統完成 / 🔄 資料建置中 |
+| Phase 3 | 遊戲系統 + 校園地標資料 | ✅ 完成 |
 | Phase 4 | 自訂 AR Marker + 3D 模型疊加 | 📋 規劃中 |
 
-### Phase 3 實現狀態詳表
+### Phase 3 最終實現狀態
 
 #### ✅ 已實現項目
 - 遊戲入口 (game_start.html) - 暱稱輸入、device_id 生成
-- 遊戲地圖 (game_map.html) - Leaflet 互動地圖、進度追蹤
-- 玩家成就頁 (game_profile.html) - 5 個徽章、點數顯示
-- 5 個遊戲 API 路由 - 完整的註冊、解鎖、進度查詢
+- 遊戲地圖 (game_map.html) - Leaflet 互動地圖、進度追蹤、發光標記
+- 玩家成就頁 (game_profile.html) - 5 個徽章系統、點數顯示、稱號
+- 5 個遊戲 API 路由 - 完整的註冊、解鎖、進度查詢功能
 - 完整的點數系統 - 解鎖 +10 pts、答對 +20 pts、答錯 +5 pts
-- 成就系統 - 5 個稱號完整實現
-- players & player_progress 資料表 - 完整建立
-
-#### 🔄 進行中項目
-- 校園地標資料建置（目前 1 個，需 6+ 個地標）
-- 地標詳情頁遊戲集成（需連接測驗與解鎖系統）
+- 成就系統 - 5 個稱號（新鮮人、探索者、學者、淡江通、達人）
+- 資料表 - players 和 player_progress 完整建立
+- 地標詳情頁遊戲集成 - landmark.html 答題後自動呼叫 /api/game/unlock
+- 校園地標資料 - 9 個淡江大學校園地標（包含中英文介紹、GPS座標、歷史故事、測驗題目）
 
 ---
 
@@ -357,17 +355,81 @@ ar-heritage-explorer/
 - [x] 建立 players 和 player_progress 資料表
 - [x] 實現 5 個遊戲 API 路由
 - [x] 建立 3 個遊戲頁面 (game_start, game_map, game_profile)
+- [x] 在 landmark.html 集成遊戲解鎖功能（答題後自動呼叫 /api/game/unlock）
+- [x] 新增 8 個淡江大學校園地標資料（含中英文介紹、歷史故事、測驗題目）
 
 ### 🔄 進行中 / 待完成
-- [ ] 蒐集淡江大學校園地標 GPS 座標（目前 1 個，需 6+ 個）
-- [ ] 撰寫每個地標的中英文介紹與歷史故事
-- [ ] 拍攝/上傳地標封面照片
-- [ ] 設計每個地標的歷史問答題目
-- [ ] 在 landmark.html 集成遊戲解鎖功能（測驗後呼叫 /api/game/unlock）
+- [ ] 為地標上傳封面照片
+- [ ] 驗證 GPS 座標準確性（實地測試）
 - [ ] 建立 game_unlock.html（解鎖動畫頁面）【規劃但未實現】
-- [ ] 新增 README.md 說明文件
+- [ ] 部署到 Render.com
 
 ### 📋 Phase 4 規劃中
 - [ ] 自訂 AR Marker 設計
 - [ ] 3D 模型疊加功能
 - [ ] AR 實景錄影功能
+- [ ] 離線模式支援
+
+---
+
+## 十一、校園地標清單
+
+系統已包含以下 9 個淡江大學校園地標：
+
+1. ✅ 淡水紅毛城（示例地標）
+2. ✅ 驚聲紀念大樓
+3. ✅ 覺生紀念圖書館
+4. ✅ 海事博物館暨黑天鵝展示廳
+5. ✅ 書卷廣場（蛋捲廣場）
+6. ✅ 文錙藝術中心
+7. ✅ 學生活動中心
+8. ✅ 五虎崗綜合球場
+9. ✅ 覺生綜合大樓
+
+所有地標均包含：
+- 中英文名稱與詳細介紹
+- GPS 座標（緯度/經度）
+- 歷史故事敘述
+- 4 選 1 歷史小測驗
+
+---
+
+## 十二、快速開始
+
+### 本地開發
+```bash
+# 1. 進入專案目錄
+cd ar-heritage-explorer
+
+# 2. 建立虛擬環境
+python -m venv venv
+source venv/Scripts/activate  # Windows
+
+# 3. 安裝依賴
+pip install -r requirements.txt
+
+# 4. 初始化資料庫
+python database.py
+
+# 5. 執行應用
+python app.py
+```
+
+訪問 `http://localhost:5000`
+
+### 管理員後台
+- 路由：`http://localhost:5000/admin/login`
+- 帳號：admin
+- 密碼：admin123
+
+### 遊戲系統
+- 路由：`http://localhost:5000/game`
+- 輸入暱稱開始探索
+
+---
+
+## 十三、技術支援
+
+- **GitHub**: https://github.com/candytangsys/ar-heritage-explorer
+- **開發者**: candytangsys
+- **最後更新**: 2026年6月15日
