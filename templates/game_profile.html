@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的成就 - 淡江探索者</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Segoe UI',sans-serif;background:#0f1923;color:#fff;min-height:100vh;}
+        .topbar{background:rgba(15,25,35,0.98);padding:14px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,0.08);}
+        .back{color:#4fc3f7;text-decoration:none;font-size:14px;}
+        .topbar h1{font-size:17px;font-weight:600;}
+        .container{max-width:480px;margin:0 auto;padding:24px 20px;}
+        .hero{background:linear-gradient(135deg,rgba(79,195,247,0.15),rgba(79,195,247,0.05));border:1px solid rgba(79,195,247,0.2);border-radius:16px;padding:28px;text-align:center;margin-bottom:24px;}
+        .hero .avatar{font-size:48px;margin-bottom:8px;}
+        .hero .name{font-size:20px;font-weight:700;margin-bottom:4px;}
+        .hero .title-badge{display:inline-block;background:rgba(79,195,247,0.15);color:#4fc3f7;padding:4px 14px;border-radius:20px;font-size:13px;margin-bottom:16px;}
+        .pts-big{font-size:42px;font-weight:700;color:#ffd54f;}
+        .pts-label{font-size:13px;color:rgba(255,255,255,0.4);}
+        .section-title{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.35);margin-bottom:12px;}
+        .achievement-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
+        .ach{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px;text-align:center;}
+        .ach.earned{border-color:rgba(79,195,247,0.3);background:rgba(79,195,247,0.08);}
+        .ach .icon{font-size:24px;margin-bottom:6px;}
+        .ach .ach-name{font-size:13px;font-weight:600;}
+        .ach .ach-desc{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;}
+        .ach.locked{opacity:0.4;}
+        .map-btn{display:block;width:100%;padding:14px;background:#4fc3f7;color:#0f1923;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;}
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <a href="/game/map" class="back">[← 地圖]</a>
+        <h1>我的成就</h1>
+    </div>
+
+    <div class="container">
+        <div class="hero">
+            <div class="avatar">🧭</div>
+            <div class="name" id="pname">載入中...</div>
+            <div class="title-badge" id="ptitle">--</div>
+            <div class="pts-big" id="ppts">0</div>
+            <div class="pts-label">探索點數</div>
+        </div>
+
+        <div class="section-title">成就解鎖</div>
+        <div class="achievement-grid" id="ach-grid"></div>
+
+        <a href="/game/map" class="map-btn">繼續探索 →</a>
+    </div>
+
+    <script>
+        const achievements = [
+            {id:'a1', icon:'🐣', name:'淡江新鮮人', desc:'解鎖第 1 個地標', check: (u,p,t) => u>=1},
+            {id:'a2', icon:'🗺️', name:'校園探索者', desc:'解鎖 3 個地標', check: (u,p,t) => u>=3},
+            {id:'a3', icon:'📚', name:'淡江學者', desc:'累積答對 5 題', check: (u,p,t) => p>=5},
+            {id:'a4', icon:'🏆', name:'淡江通', desc:'解鎖全部地標', check: (u,p,t) => u>=t&&t>0},
+            {id:'a5', icon:'⭐', name:'淡江達人', desc:'滿分通關', check: (u,p,t) => u>=t&&t>0&&p>=t},
+        ];
+
+        function getTitle(unlocked, total) {
+            if (unlocked >= total && total > 0) return '⭐ 淡江達人';
+            if (unlocked >= total && total > 0) return '🏆 淡江通';
+            if (unlocked >= 3) return '🗺️ 校園探索者';
+            if (unlocked >= 1) return '🐣 淡江新鮮人';
+            return '🔍 初心者';
+        }
+
+        async function load() {
+            const deviceId = localStorage.getItem('tku_device_id');
+            if (!deviceId) {
+                location.href='/game';
+                return;
+            }
+            const r = await fetch('/api/game/progress?device_id=' + deviceId);
+            if (!r.ok) {
+                location.href='/game';
+                return;
+            }
+            const d = await r.json();
+            document.getElementById('pname').textContent = d.nickname;
+            document.getElementById('ppts').textContent = d.total_points;
+            document.getElementById('ptitle').textContent = getTitle(d.unlocked.length, d.total_landmarks);
+
+            const correctCount = (d.progress||[]).filter(p=>p.quiz_correct).length;
+            const grid = document.getElementById('ach-grid');
+            achievements.forEach(a => {
+                const earned = a.check(d.unlocked.length, correctCount, d.total_landmarks);
+                grid.innerHTML += `
+                    <div class="ach ${earned?'earned':'locked'}">
+                        <div class="icon">${a.icon}</div>
+                        <div class="ach-name">${a.name}</div>
+                        <div class="ach-desc">${a.desc}</div>
+                    </div>
+                `;
+            });
+        }
+
+        load();
+    </script>
+</body>
+</html>

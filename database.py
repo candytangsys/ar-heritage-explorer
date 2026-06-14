@@ -37,6 +37,27 @@ def init_db():
         )
     ''')
 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS players (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nickname TEXT NOT NULL,
+            device_id TEXT UNIQUE NOT NULL,
+            total_points INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS player_progress (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id TEXT NOT NULL,
+            landmark_id INTEGER NOT NULL,
+            unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            quiz_correct BOOLEAN DEFAULT 0,
+            points_earned INTEGER DEFAULT 0
+        )
+    ''')
+
     # 建立預設管理員帳號 admin / admin123
     from werkzeug.security import generate_password_hash
     try:

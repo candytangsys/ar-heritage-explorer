@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>探索地圖 - 淡江探索者</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Segoe UI',sans-serif;background:#0f1923;color:#fff;}
+        .topbar{position:fixed;top:0;width:100%;z-index:1000;background:rgba(15,25,35,0.95);backdrop-filter:blur(10px);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.08);}
+        .topbar .title{font-size:16px;font-weight:700;color:#4fc3f7;}
+        .topbar .pts{font-size:14px;color:#ffd54f;font-weight:600;}
+        #map{height:100vh;padding-top:56px;}
+        .progress-bar{position:fixed;bottom:0;width:100%;background:rgba(15,25,35,0.95);padding:12px 20px;z-index:1000;border-top:1px solid rgba(255,255,255,0.08);}
+        .prog-text{font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:6px;}
+        .prog-track{background:rgba(255,255,255,0.08);border-radius:4px;height:6px;}
+        .prog-fill{background:#4fc3f7;height:6px;border-radius:4px;transition:width 0.5s;}
+        .profile-btn{position:fixed;bottom:70px;right:16px;z-index:1000;background:#4fc3f7;color:#0f1923;border:none;border-radius:50%;width:52px;height:52px;font-size:22px;cursor:pointer;box-shadow:0 4px 16px rgba(79,195,247,0.4);}
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="title">🗺️ 淡江探索者</div>
+        <div class="pts">⭐ <span id="pts">0</span> pts</div>
+    </div>
+
+    <div id="map"></div>
+
+    <button class="profile-btn" onclick="window.location.href='/game/profile'">👤</button>
+
+    <div class="progress-bar">
+        <div class="prog-text">探索進度：<span id="prog-text">0 / 0</span></div>
+        <div class="prog-track">
+            <div class="prog-fill" id="prog-fill"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        const landmarks = {{ landmarks | tojson | safe }};
+        const deviceId = localStorage.getItem('tku_device_id');
+        if (!deviceId) location.href = '/game';
+
+        const map = L.map('map').setView([25.1763, 121.4330], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        let unlocked = [];
+
+        async function loadProgress() {
+            const r = await fetch('/api/game/progress?device_id=' + deviceId);
+            if (!r.ok) return;
+            const d = await r.json();
+            unlocked = d.unlocked || [];
+            document.getElementById('pts').textContent = d.total_points;
+            document.getElementById('prog-text').textContent = unlocked.length + ' / ' + d.total_landmarks;
+            document.getElementById('prog-fill').style.width = (unlocked.length / d.total_landmarks * 100) + '%';
+            renderMarkers();
+        }
+
+        function renderMarkers() {
+            landmarks.forEach(lm => {
+                const done = unlocked.includes(lm.id);
+                const icon = L.divIcon({
+                    html: `<div style="width:18px;height:18px;background:${done?'#4fc3f7':'#999'};border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px ${done?'rgba(79,195,247,0.8)':'rgba(0,0,0,0.3)'}"></div>`,
+                    className:'',
+                    iconAnchor:[9,9]
+                });
+                L.marker([lm.lat, lm.lng], {icon}).addTo(map)
+                    .bindPopup(`<b>${lm.name_zh}</b><br>${done?'✅ 已探索':'🔒 未解鎖'}<br><a href="/landmark/${lm.id}" style="color:#4fc3f7;text-decoration:none;font-weight:600">前往探索</a>`);
+            });
+        }
+
+        loadProgress();
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>淡江探索者</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Segoe UI',sans-serif;background:#0f1923;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+        .card{width:340px;text-align:center;padding:40px 32px;}
+        .logo{font-size:48px;margin-bottom:16px;}
+        h1{font-size:24px;font-weight:700;color:#4fc3f7;margin-bottom:6px;}
+        .sub{font-size:14px;color:rgba(255,255,255,0.4);margin-bottom:36px;}
+        input{width:100%;padding:12px 16px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-size:16px;text-align:center;outline:none;margin-bottom:16px;}
+        input:focus{border-color:#4fc3f7;}
+        button{width:100%;padding:14px;background:#4fc3f7;color:#0f1923;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;}
+        button:hover{background:#0288d1;color:#fff;}
+        .note{font-size:12px;color:rgba(255,255,255,0.3);margin-top:16px;}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo">🗺️</div>
+        <h1>淡江探索者</h1>
+        <p class="sub">TKU Explorer — 探索校園，蒐集歷史</p>
+        <input type="text" id="nickname" placeholder="開始探索" maxlength="20">
+        <button onclick="startGame()">無需註冊，輸入暱稱即可開始</button>
+        <p class="note">你的進度會自動儲存到此裝置</p>
+    </div>
+
+    <script>
+        function generateDeviceId() {
+            let id = localStorage.getItem('tku_device_id');
+            if (!id) {
+                id = 'dev_' + Math.random().toString(36).substr(2,12);
+                localStorage.setItem('tku_device_id', id);
+            }
+            return id;
+        }
+        async function startGame() {
+            const nickname = document.getElementById('nickname').value.trim();
+            if (!nickname) {
+                alert('請輸入暱稱！');
+                return;
+            }
+            const device_id = generateDeviceId();
+            localStorage.setItem('tku_nickname', nickname);
+            await fetch('/api/game/register', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({nickname, device_id})
+            });
+            window.location.href = '/game/map';
+        }
+    </script>
+</body>
+</html>

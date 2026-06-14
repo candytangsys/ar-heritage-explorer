@@ -63,6 +63,13 @@
       <div class="title">GPS AR 探索模式</div>
       <div class="sub">走近地標即可看見 AR 標記</div>
     </div>
+    <div style="display:flex; gap:8px; margin-left:auto;">
+      <a href="/ar/gps"
+         style="background:#4fc3f7; color:#0f1923; padding:6px 12px; border-radius:6px;
+                font-size:12px; font-weight:700; text-decoration:none;">
+        📡 GPS AR
+      </a>
+    </div>
   </div>
 
   <div class="landmark-list" id="lm-list"></div>
@@ -142,7 +149,7 @@
   </a-scene>
 
   <script>
-    const landmarks = {{ landmarks | tojson | safe }};
+    const landmarks = {{ landmarks | tojson }};
 
     function getDistance(lat1, lng1, lat2, lng2) {
       const R = 6371000;
@@ -171,7 +178,7 @@
               ? `${Math.round(lm.dist)} 公尺`
               : `${(lm.dist/1000).toFixed(1)} 公里`;
             list.innerHTML += `
-              <a href="/landmark/${lm.id}" class="lm-chip">
+              <a href="/ar/marker/${lm.id}" class="lm-chip">
                 ${lm.name_zh}
                 <div class="dist">📍 ${dist}</div>
               </a>`;

@@ -122,6 +122,21 @@
         btns.forEach(b => { if (b.textContent.startsWith(correct)) b.classList.add('correct'); });
         document.getElementById('quiz-result').textContent = '❌ 答錯了，正確答案是 ' + correct;
       }
+      
+      // 遊戲系統集成：答題完成後呼叫解鎖 API
+      const deviceId = localStorage.getItem('tku_device_id');
+      if (deviceId) {
+        const landmarkId = parseInt(window.location.pathname.split('/').pop());
+        fetch('/api/game/unlock', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            device_id: deviceId,
+            landmark_id: landmarkId,
+            quiz_correct: (choice === correct)
+          })
+        });
+      }
     }
   </script>
 </body>

@@ -7,7 +7,7 @@ import os
 from database import init_db, DB_PATH
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-change-this'
+app.secret_key = 'tku-ar-heritage-2026-candy'
 
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -180,6 +180,88 @@ def ar_gps():
     landmarks = conn.execute("SELECT id, name_zh, lat, lng FROM landmarks").fetchall()
     conn.close()
     return render_template('ar_gps.html', landmarks=[dict(r) for r in landmarks])
+
+# ── 遊戲系統路由 ──────────────────────────────
+
+@app.route('/game')
+def game():
+    return render_template('game_start.html')
+
+@app.route('/game/map')
+def game_map():
+    conn = get_db()
+    landmarks = conn.execute("SELECT id, name_zh, name_en, lat, lng FROM landmarks").fetchall()
+    conn.close()
+    return render_template('game_map.html', landmarks=[dict(r) for r in landmarks])
+
+@app.route('/game/profile')
+def game_profile():
+    return render_template('game_profile.html')
+
+@app.route('/api/game/register', methods=['POST'])
+def game_register():
+    data = request.get_json()
+    nickname = data.get('nickname', '探索者')
+    device_id = data.get('device_id')
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute("INSERT INTO players (nickname, device_id) VALUES (?, ?)", (nickname, device_id))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass
+    conn.close()
+    return jsonify({'status': 'ok'})
+
+@app.route('/api/game/unlock', methods=['POST'])
+def game_unlock():
+    data = request.get_json()
+    device_id = data.get('device_id')
+    landmark_id = data.get('landmark_id')
+    quiz_correct = data.get('quiz_correct', False)
+    points = 10 + (20 if quiz_correct else 5)
+    conn = sqlite3.connect(DB_PATH)
+    existing = conn.execute(
+        "SELECT id FROM player_progress WHERE device_id=? AND landmark_id=?",
+        (device_id, landmark_id)
+    ).fetchone()
+    if not existing:
+        conn.execute(
+            "INSERT INTO player_progress (device_id, landmark_id, quiz_correct, points_earned) VALUES (?,?,?,?)",
+            (device_id, landmark_id, quiz_correct, points)
+        )
+        conn.execute(
+            "UPDATE players SET total_points = total_points + ? WHERE device_id = ?",
+            (points, device_id)
+        )
+        conn.commit()
+        earned = points
+    else:
+        earned = 0
+    conn.close()
+    return jsonify({'status': 'ok', 'points_earned': earned})
+
+@app.route('/api/game/progress')
+def game_progress():
+    device_id = request.args.get('device_id')
+    conn = get_db()
+    player = conn.execute("SELECT * FROM players WHERE device_id=?", (device_id,)).fetchone()
+    progress = conn.execute(
+        "SELECT landmark_id, quiz_correct, points_earned, unlocked_at FROM player_progress WHERE device_id=?",
+        (device_id,)
+    ).fetchall()
+    total_landmarks = conn.execute("SELECT COUNT(*) FROM landmarks").fetchone()[0]
+    conn.close()
+    if not player:
+        return jsonify({'error': 'player not found'}), 404
+    unlocked_ids = [p['landmark_id'] for p in progress]
+    return jsonify({
+        'nickname': player['nickname'],
+        'total_points': player['total_points'],
+        'unlocked': unlocked_ids,
+        'total_landmarks': total_landmarks,
+        'progress': [dict(p) for p in progress]
+    })
+
 if __name__ == '__main__':
     init_db()
     app.run(debug=True)
