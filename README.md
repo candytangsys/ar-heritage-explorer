@@ -1,4 +1,4 @@
-# AR Heritage Explorer — 專案規格書
+# AR Heritage Explorer
 
 **淡江大學校園 AR 歷史地標探索系統**
 撰寫日期：2026年6月
