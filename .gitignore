@@ -2,5 +2,4 @@ venv/
 __pycache__/
 *.pyc
 heritage.db
-static/uploads/*
-!static/uploads/.gitkeep
+!static/uploads/
