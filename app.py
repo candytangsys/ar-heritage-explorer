@@ -45,7 +45,7 @@ def get_db():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return redirect(url_for('game'))
 
 @app.route('/landmark/<int:landmark_id>')
 def landmark(landmark_id):
@@ -212,6 +212,10 @@ def game_register():
     conn.close()
     return jsonify({'status': 'ok'})
 
+@app.route('/game/unlock')
+def game_unlock_page():
+    return render_template('game_unlock.html')
+
 @app.route('/api/game/unlock', methods=['POST'])
 def game_unlock():
     data = request.get_json()
@@ -224,6 +228,7 @@ def game_unlock():
         "SELECT id FROM player_progress WHERE device_id=? AND landmark_id=?",
         (device_id, landmark_id)
     ).fetchone()
+    bonus = 0
     if not existing:
         conn.execute(
             "INSERT INTO player_progress (device_id, landmark_id, quiz_correct, points_earned) VALUES (?,?,?,?)",
@@ -235,10 +240,21 @@ def game_unlock():
         )
         conn.commit()
         earned = points
+        total_landmarks = conn.execute("SELECT COUNT(*) FROM landmarks").fetchone()[0]
+        unlocked_count = conn.execute(
+            "SELECT COUNT(*) FROM player_progress WHERE device_id=?", (device_id,)
+        ).fetchone()[0]
+        if total_landmarks > 0 and unlocked_count >= total_landmarks:
+            bonus = 100
+            conn.execute(
+                "UPDATE players SET total_points = total_points + 100 WHERE device_id = ?",
+                (device_id,)
+            )
+            conn.commit()
     else:
         earned = 0
     conn.close()
-    return jsonify({'status': 'ok', 'points_earned': earned})
+    return jsonify({'status': 'ok', 'points_earned': earned, 'bonus': bonus})
 
 @app.route('/api/game/progress')
 def game_progress():

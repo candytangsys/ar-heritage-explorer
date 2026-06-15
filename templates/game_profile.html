@@ -58,8 +58,8 @@
             {id:'a5', icon:'⭐', name:'淡江達人', desc:'滿分通關', check: (u,p,t) => u>=t&&t>0&&p>=t},
         ];
 
-        function getTitle(unlocked, total) {
-            if (unlocked >= total && total > 0) return '⭐ 淡江達人';
+        function getTitle(unlocked, correctCount, total) {
+            if (unlocked >= total && total > 0 && correctCount >= total) return '⭐ 淡江達人';
             if (unlocked >= total && total > 0) return '🏆 淡江通';
             if (unlocked >= 3) return '🗺️ 校園探索者';
             if (unlocked >= 1) return '🐣 淡江新鮮人';
@@ -78,11 +78,11 @@
                 return;
             }
             const d = await r.json();
+            const correctCount = (d.progress||[]).filter(p=>p.quiz_correct).length;
             document.getElementById('pname').textContent = d.nickname;
             document.getElementById('ppts').textContent = d.total_points;
-            document.getElementById('ptitle').textContent = getTitle(d.unlocked.length, d.total_landmarks);
+            document.getElementById('ptitle').textContent = getTitle(d.unlocked.length, correctCount, d.total_landmarks);
 
-            const correctCount = (d.progress||[]).filter(p=>p.quiz_correct).length;
             const grid = document.getElementById('ach-grid');
             achievements.forEach(a => {
                 const earned = a.check(d.unlocked.length, correctCount, d.total_landmarks);
