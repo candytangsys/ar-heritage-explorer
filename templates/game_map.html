@@ -42,7 +42,7 @@
         const deviceId = localStorage.getItem('tku_device_id');
         if (!deviceId) location.href = '/game';
 
-        const map = L.map('map').setView([25.1763, 121.4330], 16);
+        const map = L.map('map').setView([25.17520, 121.45120], 17);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
         let unlocked = [];

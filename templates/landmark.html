@@ -6,6 +6,7 @@
   <title>{{ lm.name_zh }} - AR Heritage Explorer</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: auto; overflow-y: auto; }
     body { font-family: 'Segoe UI', sans-serif; background: #0f1923; color: #fff; min-height: 100vh; }
     .back { display: inline-flex; align-items: center; gap: 6px; padding: 14px 24px;
       color: #4fc3f7; text-decoration: none; font-size: 14px; }
@@ -52,7 +53,7 @@
   </style>
 </head>
 <body>
-  <a href="/" class="back">← 返回地圖</a>
+  <a href="/game/map" class="back">← 返回地圖</a>
 <div style="display:flex; gap:10px; padding: 0 24px 14px; flex-wrap:wrap;">
   <a href="/ar/marker/{{ lm.id }}"
      style="background:#4fc3f7; color:#0f1923; padding:10px 20px; border-radius:8px;
