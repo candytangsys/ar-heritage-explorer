@@ -4,7 +4,20 @@ from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 import sqlite3
 import os
+import math
 from database import init_db, DB_PATH
+
+# 解鎖距離門檻（公尺）：GPS 距地標多近才算「抵達現場」
+UNLOCK_RADIUS_M = 50
+
+def haversine_m(lat1, lng1, lat2, lng2):
+    """兩組經緯度的地表距離（公尺）"""
+    R = 6371000
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlmb = math.radians(lng2 - lng1)
+    a = math.sin(dphi/2)**2 + math.cos(p1)*math.cos(p2)*math.sin(dlmb/2)**2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
 app = Flask(__name__)
 app.secret_key = 'tku-ar-heritage-2026-candy'
@@ -216,14 +229,35 @@ def game_register():
 def game_unlock_page():
     return render_template('game_unlock.html')
 
+# 點數規則：到現場解鎖 +30，答對歷史題額外 +10，全蒐集 +100
+UNLOCK_POINTS = 30
+QUIZ_BONUS_POINTS = 10
+
 @app.route('/api/game/unlock', methods=['POST'])
 def game_unlock():
+    """定位解鎖：玩家須在地標 UNLOCK_RADIUS_M 公尺內（GPS 或 AR 鏡頭掃描皆走此判定）"""
     data = request.get_json()
     device_id = data.get('device_id')
     landmark_id = data.get('landmark_id')
-    quiz_correct = data.get('quiz_correct', False)
-    points = 10 + (20 if quiz_correct else 5)
+    user_lat = data.get('lat')
+    user_lng = data.get('lng')
+
     conn = sqlite3.connect(DB_PATH)
+    lm = conn.execute("SELECT lat, lng FROM landmarks WHERE id=?", (landmark_id,)).fetchone()
+    if not lm:
+        conn.close()
+        return jsonify({'status': 'error', 'message': '找不到此地標'}), 404
+
+    # 距離驗證（伺服器端，避免直接呼叫 API 作弊）
+    if user_lat is None or user_lng is None:
+        conn.close()
+        return jsonify({'status': 'no_location', 'message': '需要定位資訊才能解鎖'}), 400
+    dist = haversine_m(float(user_lat), float(user_lng), lm[0], lm[1])
+    if dist > UNLOCK_RADIUS_M:
+        conn.close()
+        return jsonify({'status': 'too_far', 'distance': round(dist),
+                        'radius': UNLOCK_RADIUS_M, 'message': '尚未抵達地標範圍'})
+
     existing = conn.execute(
         "SELECT id FROM player_progress WHERE device_id=? AND landmark_id=?",
         (device_id, landmark_id)
@@ -232,14 +266,14 @@ def game_unlock():
     if not existing:
         conn.execute(
             "INSERT INTO player_progress (device_id, landmark_id, quiz_correct, points_earned) VALUES (?,?,?,?)",
-            (device_id, landmark_id, quiz_correct, points)
+            (device_id, landmark_id, False, UNLOCK_POINTS)
         )
         conn.execute(
             "UPDATE players SET total_points = total_points + ? WHERE device_id = ?",
-            (points, device_id)
+            (UNLOCK_POINTS, device_id)
         )
         conn.commit()
-        earned = points
+        earned = UNLOCK_POINTS
         total_landmarks = conn.execute("SELECT COUNT(*) FROM landmarks").fetchone()[0]
         unlocked_count = conn.execute(
             "SELECT COUNT(*) FROM player_progress WHERE device_id=?", (device_id,)
@@ -255,6 +289,36 @@ def game_unlock():
         earned = 0
     conn.close()
     return jsonify({'status': 'ok', 'points_earned': earned, 'bonus': bonus})
+
+@app.route('/api/game/quiz', methods=['POST'])
+def game_quiz():
+    """歷史小測驗加分：地標須已解鎖；答對 +QUIZ_BONUS_POINTS，每個地標僅計一次"""
+    data = request.get_json()
+    device_id = data.get('device_id')
+    landmark_id = data.get('landmark_id')
+    is_correct = bool(data.get('quiz_correct', False))
+
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute(
+        "SELECT id, quiz_correct FROM player_progress WHERE device_id=? AND landmark_id=?",
+        (device_id, landmark_id)
+    ).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'status': 'locked', 'message': '請先到現場解鎖此地標'}), 403
+
+    already_correct = bool(row[1])
+    awarded = 0
+    if is_correct and not already_correct:
+        awarded = QUIZ_BONUS_POINTS
+        conn.execute("UPDATE player_progress SET quiz_correct=1, points_earned=points_earned+? WHERE id=?",
+                     (awarded, row[0]))
+        conn.execute("UPDATE players SET total_points = total_points + ? WHERE device_id = ?",
+                     (awarded, device_id))
+        conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'correct': is_correct,
+                    'points_earned': awarded, 'already_correct': already_correct})
 
 @app.route('/api/game/progress')
 def game_progress():

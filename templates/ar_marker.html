@@ -95,14 +95,14 @@
   <div class="vignette"></div>
 
   <div class="top-bar">
-    <a href="/landmark/{{ lm.id }}" class="back-btn">← 返回</a>
+    <a href="/game/map" class="back-btn">← 返回地圖</a>
     <div>
       <div class="landmark-name">{{ lm.name_zh }}</div>
       <div class="landmark-sub">AR 鏡頭模式</div>
     </div>
   </div>
 
-  <div class="ar-card">
+  <div class="ar-card" id="arCard" style="display:none;">
     <span class="badge">📍 AR 地標資訊</span>
     <h1>{{ lm.name_zh }}</h1>
     <div class="en">{{ lm.name_en }}</div>
@@ -113,8 +113,17 @@
     {% endif %}
   </div>
 
+  <!-- 解鎖狀態列 -->
+  <div id="unlockPanel" style="position:fixed; bottom:84px; left:50%; transform:translateX(-50%);
+       z-index:10; width:86%; max-width:360px; text-align:center;
+       background:rgba(15,25,35,0.88); border:1px solid rgba(79,195,247,0.3);
+       border-radius:12px; padding:12px 16px; color:#fff; font-size:14px;">
+    <span id="unlockStatus">📡 定位中…對準建築物掃描</span>
+  </div>
+
   <div class="bottom-actions">
-    <a href="/landmark/{{ lm.id }}" class="btn-primary">查看完整介紹</a>
+    <button id="unlockBtn" class="btn-primary" style="display:none; border:none; cursor:pointer;">✅ 解鎖此地標</button>
+    <a href="/landmark/{{ lm.id }}" class="btn-primary" id="introBtn">查看完整介紹</a>
     <a href="/ar/gps" class="btn-ghost">📡 GPS 導覽</a>
   </div>
 
@@ -133,11 +142,89 @@
         });
         document.getElementById('cam').srcObject = stream;
       } catch (e) {
+        // 開不了鏡頭時，才顯示錯誤提示與地標資訊卡
         document.getElementById('camError').style.display = 'block';
+        document.getElementById('arCard').style.display = 'block';
         document.body.classList.add('no-cam');
       }
     }
     startCamera();
+
+    // ── 定位解鎖 ──────────────────────────────
+    const LM = { id: {{ lm.id }}, lat: {{ lm.lat }}, lng: {{ lm.lng }} };
+    const RADIUS = 50;
+    const deviceId = localStorage.getItem('tku_device_id');
+    let already = false, lastLat = null, lastLng = null;
+
+    function dist(a, b, c, d) {
+      const R = 6371000, dLat = (c-a)*Math.PI/180, dLng = (d-b)*Math.PI/180;
+      const x = Math.sin(dLat/2)**2 + Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLng/2)**2;
+      return R*2*Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+    }
+
+    const statusEl = document.getElementById('unlockStatus');
+    const unlockBtn = document.getElementById('unlockBtn');
+    const introBtn = document.getElementById('introBtn');
+
+    // 先查是否已解鎖
+    (async () => {
+      if (!deviceId) return;
+      try {
+        const r = await fetch('/api/game/progress?device_id=' + deviceId);
+        if (r.ok) {
+          const d = await r.json();
+          already = (d.unlocked || []).includes(LM.id);
+          if (already) {
+            statusEl.innerHTML = '✅ 已解鎖此地標';
+            introBtn.textContent = '查看介紹 / 答題加分';
+          }
+        }
+      } catch (_) {}
+    })();
+
+    if (navigator.geolocation) {
+      navigator.geolocation.watchPosition(pos => {
+        lastLat = pos.coords.latitude; lastLng = pos.coords.longitude;
+        if (already) return;
+        const d = dist(lastLat, lastLng, LM.lat, LM.lng);
+        if (d <= RADIUS) {
+          statusEl.innerHTML = '🎯 已抵達現場（' + Math.round(d) + ' m）！可解鎖';
+          unlockBtn.style.display = 'block';
+          introBtn.style.display = 'none';
+        } else {
+          statusEl.innerHTML = '📡 距離地標約 <b>' + Math.round(d) + ' m</b>，再靠近一點（需 ≤' + RADIUS + ' m）';
+          unlockBtn.style.display = 'none';
+          introBtn.style.display = 'block';
+        }
+      }, () => {
+        statusEl.innerHTML = '⚠️ 無法取得定位，請允許位置權限';
+      }, { enableHighAccuracy: true, maximumAge: 2000 });
+    } else {
+      statusEl.innerHTML = '⚠️ 此裝置不支援定位';
+    }
+
+    unlockBtn.addEventListener('click', async () => {
+      if (!deviceId) { location.href = '/game'; return; }
+      unlockBtn.disabled = true; unlockBtn.textContent = '解鎖中…';
+      try {
+        const r = await fetch('/api/game/unlock', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ device_id: deviceId, landmark_id: LM.id, lat: lastLat, lng: lastLng })
+        });
+        const data = await r.json();
+        if (data.status === 'ok') {
+          location.href = `/game/unlock?landmark_id=${LM.id}&points=${data.points_earned}&bonus=${data.bonus||0}`;
+        } else if (data.status === 'too_far') {
+          statusEl.innerHTML = '尚未抵達（距離 ' + data.distance + ' m）';
+          unlockBtn.disabled = false; unlockBtn.textContent = '✅ 解鎖此地標';
+        } else {
+          statusEl.innerHTML = data.message || '解鎖失敗';
+          unlockBtn.disabled = false; unlockBtn.textContent = '✅ 解鎖此地標';
+        }
+      } catch (_) {
+        unlockBtn.disabled = false; unlockBtn.textContent = '✅ 解鎖此地標';
+      }
+    });
   </script>
 </body>
 </html>

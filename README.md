@@ -40,7 +40,8 @@
 | 層級 | 技術 | 說明 |
 |------|------|------|
 | 前端 | HTML5 / CSS3 / JavaScript | 介面與互動邏輯 |
-| AR 引擎 | AR.js + A-Frame 1.4.2 | Web-based AR，無需安裝 App |
+| AR 鏡頭 | 原生 `getUserMedia` | 免標記鏡頭實景，無需安裝 App、無需印標記 |
+| 定位導覽 | Geolocation + Device Orientation | GPS 距離判定與指南針雷達導覽 |
 | 地圖 | Leaflet.js 1.9.4 | 互動地圖與地標標記 |
 | 後端 | Python Flask 3.1.3 | API 路由與伺服器邏輯 |
 | 認證 | Flask-Login 0.6.3 | 管理員登入與 Session 管理 |
@@ -119,32 +120,29 @@ ar-heritage-explorer/
 - 輸入暱稱後產生 device_id 儲存至 localStorage
 - 呼叫 `/api/game/register` 後跳轉至遊戲地圖
 
-### 4.2 遊戲地圖（game_map.html）
+### 4.2 遊戲地圖（game_map.html，主畫面）
 
 - Leaflet.js 互動地圖，聚焦淡江大學校園
 - 已解鎖地標顯示藍色發光標記，未解鎖顯示灰色
-- 點擊標記可跳轉至地標詳細頁
-- 右上角顯示玩家暱稱、點數、解鎖進度
-- 底部導覽列：地圖 / 成就
+- 點擊任一標記（含未解鎖）彈窗 →「前往介紹頁」直接進地標詳細頁
+- **左下角常駐兩顆同色入口按鈕**（灰底藍字）：
+  - 📷 AR 掃描：用 GPS 自動找最近地標，直接進該地標鏡頭頁
+  - 📡 GPS 定位：進 GPS 雷達導覽頁
+- 右上角顯示點數，底部顯示解鎖進度條，右下角為成就頁入口
 
 ### 4.3 地標詳細頁（landmark.html）
 
 - 顯示封面圖片（無圖時顯示預設 emoji 佔位）
-- 地標名稱（中文 + 英文雙語）
-- 地址資訊
-- 歷史介紹（中文 + 英文）
-- 歷史人物小故事（獨立區塊）
-- 歷史小測驗（單選四選一，答對/答錯即時回饋）
-- 答題後自動呼叫 `/api/game/unlock`，跳轉至解鎖慶祝頁
-- AR 功能入口按鈕：
-  - 📷 AR Marker 掃描
-  - 📡 GPS AR 探索
+- 地標名稱（中英文）、地址、歷史介紹（中英文）、歷史人物小故事
+- 頁面上方提供 📷 AR 掃描 / 📡 GPS 定位 入口
+- **未解鎖時**：隱藏測驗，顯示「🔒 尚未解鎖」提示與前往現場解鎖的按鈕
+- **已解鎖後**：開放歷史小測驗（四選一），答對呼叫 `/api/game/quiz` 加 +10 分（每地標限一次）
 
 ### 4.4 解鎖慶祝頁（game_unlock.html）
 
-- 解鎖動畫與點數顯示
+- 「📍 抵達現場，解鎖成功！」動畫與點數顯示
 - 達成全蒐集時觸發 +100 pts 特別獎勵提示
-- 提供「繼續探索」按鈕回到遊戲地圖
+- 主按鈕「📖 看介紹並答題 +10」導向該地標介紹頁；另有「繼續探索地圖」
 
 ### 4.5 玩家成就頁（game_profile.html）
 
@@ -162,18 +160,18 @@ ar-heritage-explorer/
 
 ### 4.7 AR 鏡頭（ar_marker.html）
 
-- **免標記（markerless）**：直接呼叫後鏡頭，把地標資訊卡疊加在實景畫面上
-- 不需要列印或顯示 Hiro Marker，任何手機開啟即可使用
-- 疊加內容：地標中英文名稱、地址、歷史介紹摘要、測驗提示
-- 鏡頭權限被拒或非 HTTPS 時，仍會顯示地標資訊卡與提示
-- 需要 HTTPS 環境 + 相機權限
+- **免標記（markerless）**：直接呼叫後鏡頭作為實景背景，不需列印或顯示 Hiro Marker
+- 鏡頭正常開啟時畫面乾淨無浮動提示，可直接掃描；**僅在開不了鏡頭時**才顯示紅色提示與地標資訊卡
+- 背景持續以 GPS 計算與本地標距離：≤ 50 公尺時出現「✅ 解鎖此地標」按鈕，呼叫 `/api/game/unlock` 解鎖
+- 左上角「← 返回地圖」直接回主畫面（不會進入介紹頁）
+- 需要 HTTPS 環境 + 相機 / 定位權限
 
 ### 4.8 GPS 導覽（ar_gps.html）
 
 - **無鏡頭**：以指南針式雷達 + 距離清單導引使用者走向地標
 - 取得 GPS 座標，計算各地標的距離與方位角
 - 雷達光點與清單箭頭會隨手機朝向即時旋轉（指向目標方向）
-- 走近 50 公尺內提示「就在附近，前往答題解鎖」
+- 走近 50 公尺內且未解鎖的地標，點擊該列即可解鎖；已解鎖則連往介紹頁答題加分
 - iOS 13+ 會請求「方向感應」權限以啟用羅盤
 - 需要 HTTPS 環境 + 定位（與方向感應）權限
 
@@ -248,15 +246,19 @@ ar-heritage-explorer/
 
 ### 6.2 核心玩法
 
-玩家輸入暱稱後進入遊戲地圖，走訪 8 個校園地標，在地標詳細頁作答歷史測驗後解鎖，累積點數並解鎖成就稱號。
+玩家輸入暱稱後進入遊戲地圖（主畫面），實際走訪 8 個校園地標。**到現場用 AR 鏡頭掃描或 GPS 定位（距離 ≤ 50m）即可解鎖**（+30），解鎖後進地標介紹頁作答歷史小測驗額外加分（答對 +10）。累積點數並解鎖成就稱號。
+
+**流程：** 地圖主畫面 →（📷 AR 掃描 / 📡 GPS 定位）→ 到現場解鎖（+30）→ 解鎖慶祝頁 → 介紹頁答題加分（+10）。
 
 ### 6.3 點數規則
 
 | 行為 | 點數 |
 |------|------|
-| 解鎖地標 + 答對歷史問題 | +30 pts（10 + 20） |
-| 解鎖地標 + 答錯但完成 | +15 pts（10 + 5） |
+| 到現場解鎖地標（AR 鏡頭掃描 / GPS 定位，距離 ≤ 50m） | +30 pts |
+| 歷史小測驗答對（解鎖後才能作答，每地標限一次） | +10 pts |
 | 蒐集全部 8 個地標 | +100 pts（特別獎勵） |
+
+> **解鎖機制（重要）：** 解鎖改為「實際走到現場」——用 AR 鏡頭掃描或 GPS 定位，當裝置距地標 50 公尺內即可解鎖（伺服器端以 Haversine 距離驗證）。歷史小測驗改為**解鎖後的額外加分**，不再是解鎖條件。
 
 ### 6.4 成就稱號
 
@@ -310,7 +312,8 @@ ar-heritage-explorer/
 | GET | /api/landmarks | 取得所有地標 JSON |
 | POST | /api/game/register | 玩家註冊（輸入暱稱） |
 | GET | /api/game/progress | 取得玩家進度 |
-| POST | /api/game/unlock | 解鎖地標 + 提交答題結果 |
+| POST | /api/game/unlock | 定位解鎖（傳 lat/lng，伺服器驗證 ≤ 50m，+30 pts） |
+| POST | /api/game/quiz | 歷史測驗加分（須已解鎖，答對 +10 pts，限一次） |
 
 ---
 
@@ -506,12 +509,12 @@ This project combines Augmented Reality (AR) and GPS to build an interactive cam
 ### 4. Features
 
 - **Game Entry (`game_start.html`)** — site entry. `/` redirects to `/game`; enter a nickname → a `device_id` is stored in localStorage → `/api/game/register` → game map.
-- **Game Map (`game_map.html`)** — Leaflet map centered on campus; unlocked landmarks glow blue, locked ones are gray.
-- **Landmark Detail (`landmark.html`)** — bilingual name, address, history, a historical-figure story, and a 4-option quiz. On answer, calls `/api/game/unlock` and redirects to the celebration page.
-- **Unlock Celebration (`game_unlock.html`)** — unlock animation, points, and a +100 bonus when all landmarks are collected.
+- **Game Map (`game_map.html`, main screen)** — Leaflet map centered on campus; unlocked landmarks glow blue, locked ones are gray. Tapping any marker opens its detail page. Two always-on entry buttons (bottom-left): 📷 AR Scan (GPS picks the nearest landmark and opens its camera page) and 📡 GPS Locate (opens the radar guide).
+- **Landmark Detail (`landmark.html`)** — bilingual name, address, history, a historical-figure story. While locked, the quiz is hidden and an unlock prompt is shown; once unlocked, the 4-option quiz opens and a correct answer calls `/api/game/quiz` for +10 bonus (once per landmark).
+- **Unlock Celebration (`game_unlock.html`)** — "arrived on-site" animation, points, and a +100 bonus when all landmarks are collected. Primary button leads to the detail page to take the quiz.
 - **Player Achievements (`game_profile.html`)** — nickname, title, total points, and 5 badges.
-- **AR Camera (`ar_marker.html`)** — markerless: opens the rear camera and overlays a landmark info card on the live view. Works on any phone over HTTPS, no printed marker required.
-- **GPS Guide (`ar_gps.html`)** — no camera; shows a compass-style radar plus a list of landmarks with direction arrows and live distances. Requests iOS device-orientation permission for the compass.
+- **AR Camera (`ar_marker.html`)** — markerless: opens the rear camera as a live backdrop. Clean view when the camera works; the info card/error only appears if the camera can't open. Background GPS shows distance and an "Unlock" button appears within 50 m. Back button returns to the map.
+- **GPS Guide (`ar_gps.html`)** — no camera; a compass-style radar plus a list of landmarks with direction arrows and live distances. Tap a nearby (≤ 50 m) locked landmark to unlock it. Requests iOS device-orientation permission for the compass.
 - **Admin Panel** — Werkzeug-hashed login; landmark list with stats and thumbnails; create/edit form with bilingual fields, GPS, image upload, and quiz settings.
 
 ### 5. Database Schema
@@ -523,13 +526,15 @@ This project combines Augmented Reality (AR) and GPS to build an interactive cam
 
 ### 6. Game System (淡江探索者 / TKU Explorer)
 
-Enter a nickname → visit 8 campus landmarks → answer the history quiz on each detail page to unlock → accumulate points and earn titles.
+Enter a nickname → physically travel to each of the 8 landmarks → unlock by being on-site (AR camera scan or GPS, within 50 m) → optionally answer the history quiz for bonus points → accumulate points and earn titles.
 
 | Action | Points |
 |--------|--------|
-| Unlock + correct answer | +30 (10 + 20) |
-| Unlock + wrong but completed | +15 (10 + 5) |
+| Unlock on-site (AR scan / GPS, distance ≤ 50 m) | +30 |
+| History quiz correct (only after unlock, once per landmark) | +10 |
 | Collect all 8 landmarks | +100 (bonus) |
+
+> **Unlock mechanic:** unlocking now requires actually visiting the site — the device must be within 50 m of the landmark (verified server-side with the Haversine formula via AR camera or GPS). The quiz is a post-unlock bonus, no longer the unlock gate.
 
 **Titles:** 🐣 TKU Freshman (1 unlocked) · 🗺️ Campus Explorer (3 unlocked) · 📚 TKU Scholar (5 correct) · 🏆 TKU Master (all unlocked) · ⭐ TKU Legend (perfect score on all).
 
@@ -537,7 +542,7 @@ Enter a nickname → visit 8 campus landmarks → answer the history quiz on eac
 
 **Pages:** `GET /` → `/game`, `/game`, `/game/map`, `/game/profile`, `/game/unlock`, `/landmark/<id>`, `/ar/marker/<id>` (AR camera), `/ar/gps` (GPS guide), `/admin/login`, `/admin/logout`, `/admin`, `/admin/landmark/new`, `/admin/landmark/<id>/edit`, `/admin/landmark/<id>/delete`.
 
-**API:** `GET /api/landmarks` · `POST /api/game/register` · `GET /api/game/progress` · `POST /api/game/unlock`.
+**API:** `GET /api/landmarks` · `POST /api/game/register` · `GET /api/game/progress` · `POST /api/game/unlock` (location-based, ≤ 50 m, +30) · `POST /api/game/quiz` (post-unlock bonus, +10).
 
 ### 8. Deployment
 

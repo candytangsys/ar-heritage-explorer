@@ -137,8 +137,39 @@
 
   <script>
     const landmarks = {{ landmarks | tojson }};
+    const UNLOCK_RADIUS = 50;
+    const deviceId = localStorage.getItem('tku_device_id');
     let heading = 0;          // 裝置朝向（0 = 正北）
     let myLat = null, myLng = null;
+    let unlockedIds = [];
+    let busy = false;
+
+    async function loadProgress() {
+      if (!deviceId) return;
+      try {
+        const r = await fetch('/api/game/progress?device_id=' + deviceId);
+        if (r.ok) { const d = await r.json(); unlockedIds = d.unlocked || []; render(); }
+      } catch (_) {}
+    }
+
+    // 近距離且未解鎖時，點擊即解鎖
+    async function attemptUnlock(id) {
+      if (busy || myLat === null) return;
+      busy = true;
+      try {
+        const r = await fetch('/api/game/unlock', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ device_id: deviceId, landmark_id: id, lat: myLat, lng: myLng })
+        });
+        const data = await r.json();
+        if (data.status === 'ok') {
+          location.href = `/game/unlock?landmark_id=${id}&points=${data.points_earned}&bonus=${data.bonus||0}`;
+        } else {
+          alert(data.message || '尚未抵達地標範圍');
+          busy = false;
+        }
+      } catch (_) { busy = false; }
+    }
 
     // ── 距離 & 方位 ───────────────────────────
     function getDistance(lat1, lng1, lat2, lng2) {
@@ -197,14 +228,22 @@
         }
 
         // 清單列（箭頭旋轉指向目標相對方向）
-        const row = document.createElement('a');
-        row.href = `/landmark/${lm.id}`;
+        const done = unlockedIds.includes(lm.id);
+        const canUnlock = !done && near;
+        let meta;
+        if (done)            meta = '✅ 已解鎖，點我看介紹 / 答題加分';
+        else if (canUnlock)  meta = '🎯 就在附近，點我解鎖！';
+        else                 meta = '走近至 ' + UNLOCK_RADIUS + ' m 內即可解鎖';
+
+        const row = document.createElement(done ? 'a' : 'div');
+        if (done) row.href = `/landmark/${lm.id}`;
         row.className = 'lm-row' + (near ? ' near' : '');
+        if (canUnlock) { row.style.cursor = 'pointer'; row.onclick = () => attemptUnlock(lm.id); }
         row.innerHTML = `
           <div class="arrow" style="transform: rotate(${rel}deg)">↑</div>
           <div class="info">
-            <div class="name">${lm.name_zh}</div>
-            <div class="meta">${near ? '🎯 就在附近，點我答題解鎖' : '點我查看 / 答題解鎖'}</div>
+            <div class="name">${lm.name_zh}${done ? '' : ' 🔒'}</div>
+            <div class="meta">${meta}</div>
           </div>
           <div class="dist">${fmtDist(lm.dist)}</div>`;
         list.appendChild(row);
@@ -225,6 +264,8 @@
     } else {
       document.getElementById('gps-display').textContent = '此裝置不支援定位';
     }
+
+    loadProgress();
 
     // ── 羅盤 / 方向感應 ───────────────────────
     function onOrientation(e) {

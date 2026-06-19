@@ -29,6 +29,18 @@
 
     <button class="profile-btn" onclick="window.location.href='/game/profile'">👤</button>
 
+    <!-- 常駐 AR / GPS 入口 -->
+    <div style="position:fixed; bottom:70px; left:16px; z-index:1000; display:flex; flex-direction:column; gap:10px;">
+        <button onclick="openScan()"
+            style="background:rgba(15,25,35,0.92); color:#4fc3f7; border:1px solid rgba(79,195,247,0.4); border-radius:24px; padding:11px 18px; font-size:14px; font-weight:600; cursor:pointer; text-align:center; backdrop-filter:blur(8px);">
+            📷 AR 掃描
+        </button>
+        <a href="/ar/gps"
+            style="background:rgba(15,25,35,0.92); color:#4fc3f7; border:1px solid rgba(79,195,247,0.4); border-radius:24px; padding:11px 18px; font-size:14px; font-weight:600; text-decoration:none; text-align:center; backdrop-filter:blur(8px);">
+            📡 GPS 定位
+        </a>
+    </div>
+
     <div class="progress-bar">
         <div class="prog-text">探索進度：<span id="prog-text">0 / 0</span></div>
         <div class="prog-track">
@@ -66,12 +78,37 @@
                     className:'',
                     iconAnchor:[9,9]
                 });
+                const actions = done
+                    ? `<a href="/landmark/${lm.id}" style="color:#4fc3f7;text-decoration:none;font-weight:600">查看介紹 / 答題加分 →</a>`
+                    : `<a href="/landmark/${lm.id}" style="color:#4fc3f7;text-decoration:none;font-weight:600">前往介紹頁 →</a>`;
                 L.marker([lm.lat, lm.lng], {icon}).addTo(map)
-                    .bindPopup(`<b>${lm.name_zh}</b><br>${done?'✅ 已探索':'🔒 未解鎖'}<br><a href="/landmark/${lm.id}" style="color:#4fc3f7;text-decoration:none;font-weight:600">前往探索</a>`);
+                    .bindPopup(`<b>${lm.name_zh}</b><br>${done?'✅ 已探索':'🔒 未解鎖'}<br>${actions}`);
             });
         }
 
         loadProgress();
+
+        // AR 掃描：用 GPS 找最近地標，直接進該地標的鏡頭頁
+        function openScan() {
+            if (!navigator.geolocation) { location.href = '/ar/gps'; return; }
+            const dist = (a,b,c,d) => {
+                const R=6371000, dLat=(c-a)*Math.PI/180, dLng=(d-b)*Math.PI/180;
+                const x=Math.sin(dLat/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLng/2)**2;
+                return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+            };
+            navigator.geolocation.getCurrentPosition(pos => {
+                const {latitude:la, longitude:lo} = pos.coords;
+                let nearest = null, min = Infinity;
+                landmarks.forEach(lm => {
+                    const d = dist(la, lo, lm.lat, lm.lng);
+                    if (d < min) { min = d; nearest = lm; }
+                });
+                location.href = nearest ? '/ar/marker/' + nearest.id : '/ar/gps';
+            }, () => {
+                // 取不到定位就退而開最近一筆的鏡頭頁（仍可顯示資訊）
+                location.href = landmarks.length ? '/ar/marker/' + landmarks[0].id : '/ar/gps';
+            }, { enableHighAccuracy: true, timeout: 8000 });
+        }
     </script>
 </body>
 </html>
