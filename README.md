@@ -1,8 +1,15 @@
 # AR Heritage Explorer
 
-**淡江大學校園 AR 歷史地標探索系統**
-撰寫日期：2026年6月
-開發者：candytangsys
+**淡江大學校園 AR 歷史地標探索系統 / Tamkang University Campus AR Heritage Explorer**
+
+🌐 **語言 / Language：** [繁體中文](#繁體中文) ｜ [English](#english)
+
+開發者 / Author：candytangsys ｜ 最後更新 / Last updated：2026-06-19
+
+---
+
+<a id="繁體中文"></a>
+## 繁體中文
 
 ---
 
@@ -153,19 +160,22 @@ ar-heritage-explorer/
 - 地標資料透過 `/api/landmarks` 動態載入
 - 目前不作為入口，可由導覽列補充連結
 
-### 4.7 AR Marker 掃描（ar_marker.html）
+### 4.7 AR 鏡頭（ar_marker.html）
 
-- 使用 AR.js + A-Frame，無需安裝 App
-- 手機鏡頭對準 Hiro Marker 圖片觸發
-- AR 疊加內容：地標名稱、英文名稱、地址、歷史介紹前 40 字、測驗提示、裝飾性 3D 元素
-- 需要 HTTPS 環境
+- **免標記（markerless）**：直接呼叫後鏡頭，把地標資訊卡疊加在實景畫面上
+- 不需要列印或顯示 Hiro Marker，任何手機開啟即可使用
+- 疊加內容：地標中英文名稱、地址、歷史介紹摘要、測驗提示
+- 鏡頭權限被拒或非 HTTPS 時，仍會顯示地標資訊卡與提示
+- 需要 HTTPS 環境 + 相機權限
 
-### 4.8 GPS AR 探索（ar_gps.html）
+### 4.8 GPS 導覽（ar_gps.html）
 
-- 使用 AR.js Location-Based
-- 取得使用者 GPS 座標，顯示最近 5 個地標及距離
-- 3D 場景顯示地標方向標記（發光圓球 + 光柱 + 名稱文字）
-- 需要 HTTPS 環境
+- **無鏡頭**：以指南針式雷達 + 距離清單導引使用者走向地標
+- 取得 GPS 座標，計算各地標的距離與方位角
+- 雷達光點與清單箭頭會隨手機朝向即時旋轉（指向目標方向）
+- 走近 50 公尺內提示「就在附近，前往答題解鎖」
+- iOS 13+ 會請求「方向感應」權限以啟用羅盤
+- 需要 HTTPS 環境 + 定位（與方向感應）權限
 
 ### 4.9 管理員後台
 
@@ -455,4 +465,130 @@ python database.py
 
 - **GitHub**: https://github.com/candytangsys/ar-heritage-explorer
 - **開發者**: candytangsys
-- **最後更新**: 2026年6月15日
+- **最後更新**: 2026年6月19日
+
+[⬆ 回到語言選單 / Back to top](#ar-heritage-explorer)
+
+---
+
+<a id="english"></a>
+## English
+
+**Tamkang University Campus AR Historical Landmark Exploration System**
+Author: candytangsys · Last updated: June 19, 2026
+
+### 1. Overview
+
+This project combines Augmented Reality (AR) and GPS to build an interactive campus heritage exploration platform delivered through the mobile browser. No app install is required — users scan a QR code or open a URL.
+
+**Goals:** help students and visitors discover Tamkang University's historical buildings through AR; increase engagement with gamification; provide an extensible content-management system for administrators.
+
+### 2. Tech Stack
+
+| Layer | Technology | Notes |
+|-------|-----------|-------|
+| Frontend | HTML5 / CSS3 / JavaScript | UI and interaction logic |
+| AR Camera | Native `getUserMedia` | Markerless camera overlay (no app, no printed marker) |
+| Navigation | Geolocation + Device Orientation | Radar / bearing guide to landmarks |
+| Maps | Leaflet.js 1.9.4 | Interactive map and markers |
+| Backend | Python Flask 3.1.3 | API routing and server logic |
+| Auth | Flask-Login 0.6.3 | Admin login and session management |
+| Database | SQLite | Lightweight local database |
+| Deployment | Render.com (Free Tier) | Cloud HTTPS hosting |
+
+### 3. User Roles
+
+| Role | Permissions |
+|------|-------------|
+| Visitor | Browse map, view landmarks, AR camera, GPS guide, play the game |
+| Admin | Log in, create/edit/delete landmarks, manage all data |
+
+### 4. Features
+
+- **Game Entry (`game_start.html`)** — site entry. `/` redirects to `/game`; enter a nickname → a `device_id` is stored in localStorage → `/api/game/register` → game map.
+- **Game Map (`game_map.html`)** — Leaflet map centered on campus; unlocked landmarks glow blue, locked ones are gray.
+- **Landmark Detail (`landmark.html`)** — bilingual name, address, history, a historical-figure story, and a 4-option quiz. On answer, calls `/api/game/unlock` and redirects to the celebration page.
+- **Unlock Celebration (`game_unlock.html`)** — unlock animation, points, and a +100 bonus when all landmarks are collected.
+- **Player Achievements (`game_profile.html`)** — nickname, title, total points, and 5 badges.
+- **AR Camera (`ar_marker.html`)** — markerless: opens the rear camera and overlays a landmark info card on the live view. Works on any phone over HTTPS, no printed marker required.
+- **GPS Guide (`ar_gps.html`)** — no camera; shows a compass-style radar plus a list of landmarks with direction arrows and live distances. Requests iOS device-orientation permission for the compass.
+- **Admin Panel** — Werkzeug-hashed login; landmark list with stats and thumbnails; create/edit form with bilingual fields, GPS, image upload, and quiz settings.
+
+### 5. Database Schema
+
+- **`landmarks`** — `id`, `name_zh`, `name_en`, `lat`, `lng`, `address`, `description_zh`, `description_en`, `history_story`, `image_path`, `quiz_question`, `quiz_a`–`quiz_d`, `quiz_answer`, `created_at`.
+- **`admins`** — `id`, `username` (UNIQUE), `password_hash`.
+- **`players`** — `id`, `nickname`, `device_id` (UNIQUE), `total_points`, `created_at`.
+- **`player_progress`** — `id`, `device_id`, `landmark_id`, `unlocked_at`, `quiz_correct`, `points_earned`.
+
+### 6. Game System (淡江探索者 / TKU Explorer)
+
+Enter a nickname → visit 8 campus landmarks → answer the history quiz on each detail page to unlock → accumulate points and earn titles.
+
+| Action | Points |
+|--------|--------|
+| Unlock + correct answer | +30 (10 + 20) |
+| Unlock + wrong but completed | +15 (10 + 5) |
+| Collect all 8 landmarks | +100 (bonus) |
+
+**Titles:** 🐣 TKU Freshman (1 unlocked) · 🗺️ Campus Explorer (3 unlocked) · 📚 TKU Scholar (5 correct) · 🏆 TKU Master (all unlocked) · ⭐ TKU Legend (perfect score on all).
+
+### 7. API Routes
+
+**Pages:** `GET /` → `/game`, `/game`, `/game/map`, `/game/profile`, `/game/unlock`, `/landmark/<id>`, `/ar/marker/<id>` (AR camera), `/ar/gps` (GPS guide), `/admin/login`, `/admin/logout`, `/admin`, `/admin/landmark/new`, `/admin/landmark/<id>/edit`, `/admin/landmark/<id>/delete`.
+
+**API:** `GET /api/landmarks` · `POST /api/game/register` · `GET /api/game/progress` · `POST /api/game/unlock`.
+
+### 8. Deployment
+
+| Item | Value |
+|------|-------|
+| Platform | Render.com Free Tier |
+| URL | https://ar-heritage-explorer.onrender.com |
+| Build | `pip install -r requirements.txt && python database.py` |
+| Start | `gunicorn app:app` |
+| Note | Free tier sleeps when idle; first load may take 30–50 s |
+
+### 9. Progress
+
+| Phase | Content | Status |
+|-------|---------|--------|
+| Phase 1 | Map + detail + admin CRUD + quiz | ✅ Done |
+| Phase 2 | AR camera + GPS guide | ✅ Done |
+| Phase 3 | Game system + 8 TKU landmarks + real photos | ✅ Done |
+| Phase 4 | Leaderboard + sharing + UI polish | 📋 Planned |
+
+### 10. Campus Landmarks (8)
+
+Each landmark has a bilingual name, verified GPS coordinates, bilingual history, a story, a 4-option quiz, and cover photos:
+
+| # | Landmark | Lat | Lng |
+|---|----------|-----|-----|
+| 1 | Ching-Sheng Memorial Building | 25.17550007 | 121.45133989 |
+| 2 | Chueh-Sheng Memorial Library | 25.17477507 | 121.45107288 |
+| 3 | Maritime Museum & Black Swan Hall | 25.17620523 | 121.45042453 |
+| 4 | Scroll Plaza | 25.17554047 | 121.45062699 |
+| 5 | Wen-Tzao Arts Center | 25.17507179 | 121.45219130 |
+| 6 | Student Activity Center | 25.17475595 | 121.45033093 |
+| 7 | Wuhukang Sports Court | 25.17560869 | 121.45386137 |
+| 8 | Chueh-Sheng Complex Building | 25.17443460 | 121.45083835 |
+
+### 11. Quick Start
+
+```bash
+cd ar-heritage-explorer
+python -m venv venv
+source venv/bin/activate   # macOS/Linux
+venv\Scripts\activate      # Windows
+pip install -r requirements.txt
+python database.py         # creates 8 landmarks
+python app.py
+```
+
+Open `http://localhost:5000` (auto-redirects to the game entry).
+Admin panel: `http://localhost:5000/admin/login` — username `admin`, password `admin123`.
+Reset DB: `rm heritage.db && python database.py`.
+
+> Note: the AR camera and GPS compass require **HTTPS** (or `localhost`) and camera/location permissions to work on a phone.
+
+[⬆ Back to top / 回到語言選單](#ar-heritage-explorer)

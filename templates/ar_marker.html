@@ -3,174 +3,138 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>AR 掃描 - {{ lm.name_zh }}</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <title>AR 鏡頭 - {{ lm.name_zh }}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+    body { overflow: hidden; font-family: 'Segoe UI', 'Noto Sans TC', sans-serif; background: #000; }
 
-    .ui-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; z-index: 999;
-      pointer-events: none;
+    #cam {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      object-fit: cover; z-index: 1;
     }
+
+    /* 半透明暗角，讓資訊卡更清楚 */
+    .vignette {
+      position: fixed; inset: 0; z-index: 2; pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%);
+    }
+
     .top-bar {
-      background: rgba(15,25,35,0.85); backdrop-filter: blur(8px);
-      padding: 12px 16px; display: flex; align-items: center; gap: 12px;
-      pointer-events: all;
+      position: fixed; top: 0; left: 0; width: 100%; z-index: 10;
+      background: linear-gradient(rgba(15,25,35,0.85), rgba(15,25,35,0));
+      padding: 12px 16px 28px; display: flex; align-items: center; gap: 12px;
     }
     .back-btn {
       color: #4fc3f7; text-decoration: none; font-size: 14px;
-      background: rgba(79,195,247,0.1); padding: 6px 12px; border-radius: 6px;
+      background: rgba(15,25,35,0.6); padding: 6px 12px; border-radius: 6px;
     }
     .landmark-name { color: #fff; font-size: 15px; font-weight: 600; }
-    .landmark-sub { color: rgba(255,255,255,0.4); font-size: 12px; }
+    .landmark-sub { color: rgba(255,255,255,0.5); font-size: 12px; }
 
-    .hint-box {
-      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
-      background: rgba(15,25,35,0.9); border: 1px solid rgba(79,195,247,0.3);
-      border-radius: 12px; padding: 14px 20px; text-align: center;
-      color: #fff; font-size: 14px; z-index: 999; width: 85%; max-width: 340px;
-      pointer-events: none;
+    /* AR 資訊卡 */
+    .ar-card {
+      position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      z-index: 8; width: 86%; max-width: 360px;
+      background: rgba(15,25,35,0.82); backdrop-filter: blur(10px);
+      border: 1px solid rgba(79,195,247,0.4); border-radius: 16px;
+      padding: 18px 20px; color: #fff;
+      box-shadow: 0 0 30px rgba(79,195,247,0.25);
+      animation: floaty 3s ease-in-out infinite;
     }
-    .hint-box .icon { font-size: 28px; margin-bottom: 6px; }
-    .hint-box p { color: rgba(255,255,255,0.7); font-size: 13px; margin-top: 4px; }
-
-    .marker-preview {
-      position: fixed; bottom: 140px; right: 16px; z-index: 999;
-      background: rgba(15,25,35,0.9); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px; padding: 10px; text-align: center;
-      pointer-events: all;
+    @keyframes floaty {
+      0%,100% { transform: translate(-50%, -52%); }
+      50%     { transform: translate(-50%, -48%); }
     }
-    .marker-preview img { width: 80px; height: 80px; border-radius: 6px; }
-    .marker-preview p { color: rgba(255,255,255,0.5); font-size: 11px; margin-top: 6px; }
+    .ar-card .badge {
+      display: inline-block; background: rgba(79,195,247,0.18); color: #4fc3f7;
+      font-size: 11px; padding: 3px 10px; border-radius: 20px; margin-bottom: 10px;
+    }
+    .ar-card h1 { font-size: 22px; color: #4fc3f7; margin-bottom: 2px; }
+    .ar-card .en { font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 10px; }
+    .ar-card .addr { font-size: 13px; color: #81d4fa; margin-bottom: 10px; }
+    .ar-card .desc {
+      font-size: 13px; line-height: 1.7; color: rgba(255,255,255,0.85);
+      border-top: 1px solid rgba(255,255,255,0.12); padding-top: 10px;
+    }
+    .ar-card .quiz {
+      margin-top: 12px; background: rgba(255,213,79,0.12);
+      border: 1px solid rgba(255,213,79,0.3); border-radius: 10px;
+      padding: 10px 12px; color: #ffd54f; font-size: 13px; text-align: center;
+    }
 
-    a-scene { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+    .bottom-actions {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      z-index: 10; display: flex; gap: 10px; width: 86%; max-width: 360px;
+    }
+    .bottom-actions a {
+      flex: 1; text-align: center; text-decoration: none; font-weight: 700;
+      font-size: 14px; padding: 13px 0; border-radius: 10px;
+    }
+    .btn-primary { background: #4fc3f7; color: #0f1923; }
+    .btn-ghost {
+      background: rgba(15,25,35,0.7); color: #4fc3f7;
+      border: 1px solid rgba(79,195,247,0.4);
+    }
+
+    /* 鏡頭失敗時的提示 */
+    .cam-error {
+      position: fixed; inset: 0; z-index: 9; display: none;
+      flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; color: #fff; padding: 30px; background: #0f1923;
+    }
+    .cam-error .icon { font-size: 48px; margin-bottom: 14px; }
+    .cam-error p { color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.7; margin-top: 8px; }
   </style>
 </head>
 <body>
 
-  <div class="ui-overlay">
-    <div class="top-bar">
-      <a href="/landmark/{{ lm.id }}" class="back-btn">← 返回地標</a>
-      <div>
-        <div class="landmark-name">{{ lm.name_zh }}</div>
-        <div class="landmark-sub">AR Marker 掃描模式</div>
-      </div>
-    </div>
-    <div style="display:flex; gap:8px; padding: 14px 16px 0; flex-wrap:wrap;">
-      <a href="/ar/marker/{{ lm.id }}"
-         style="background:#4fc3f7; color:#0f1923; padding:8px 16px; border-radius:6px;
-                font-size:13px; font-weight:700; text-decoration:none;">
-        📷 AR Marker
-      </a>
-      <a href="/ar/gps"
-         style="background:rgba(79,195,247,0.12); color:#4fc3f7; padding:8px 16px;
-                border-radius:6px; font-size:13px; font-weight:600; text-decoration:none;
-                border:1px solid rgba(79,195,247,0.3);">
-        📡 GPS AR 探索
-      </a>
+  <video id="cam" autoplay playsinline muted></video>
+  <div class="vignette"></div>
+
+  <div class="top-bar">
+    <a href="/landmark/{{ lm.id }}" class="back-btn">← 返回</a>
+    <div>
+      <div class="landmark-name">{{ lm.name_zh }}</div>
+      <div class="landmark-sub">AR 鏡頭模式</div>
     </div>
   </div>
 
-  <div class="marker-preview">
-    <img src="https://ar-js-org.github.io/AR.js/data/images/hiro.png" alt="Hiro Marker">
-    <p>對準此 Marker</p>
+  <div class="ar-card">
+    <span class="badge">📍 AR 地標資訊</span>
+    <h1>{{ lm.name_zh }}</h1>
+    <div class="en">{{ lm.name_en }}</div>
+    {% if lm.address %}<div class="addr">📌 {{ lm.address }}</div>{% endif %}
+    <div class="desc">{{ lm.description_zh[:90] }}{% if lm.description_zh|length > 90 %}…{% endif %}</div>
+    {% if lm.quiz_question %}
+    <div class="quiz">🎯 回到地標頁面挑戰歷史小測驗，解鎖點數！</div>
+    {% endif %}
   </div>
 
-  <div class="hint-box">
+  <div class="bottom-actions">
+    <a href="/landmark/{{ lm.id }}" class="btn-primary">查看完整介紹</a>
+    <a href="/ar/gps" class="btn-ghost">📡 GPS 導覽</a>
+  </div>
+
+  <div class="cam-error" id="camError">
     <div class="icon">📷</div>
-    <strong>將鏡頭對準 Hiro Marker</strong>
-    <p>地標資訊將疊加顯示在標記上方</p>
+    <strong>無法開啟鏡頭</strong>
+    <p>請確認已允許瀏覽器使用相機權限，<br>並在 HTTPS 網址下開啟此頁面。<br>地標資訊仍可在下方查看。</p>
   </div>
 
-  <a-scene
-    embedded
-    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
-    renderer="logarithmicDepthBuffer: true; antialias: true;"
-    vr-mode-ui="enabled: false"
-    loading-screen="enabled: false">
-
-    <a-marker preset="hiro">
-
-      <!-- 背景板 -->
-      <a-plane
-        position="0 0.1 0"
-        rotation="-90 0 0"
-        width="2.2" height="2.8"
-        color="#0f1923"
-        opacity="0.92">
-      </a-plane>
-
-      <!-- 地標名稱（中文） -->
-      <a-text
-        value="{{ lm.name_zh }}"
-        position="0 0.15 -0.7"
-        rotation="-90 0 0"
-        align="center"
-        color="#4fc3f7"
-        width="4"
-        font="https://cdn.aframe.io/fonts/Roboto-msdf.json">
-      </a-text>
-
-      <!-- 地標名稱（英文） -->
-      <a-text
-        value="{{ lm.name_en }}"
-        position="0 0.15 -0.4"
-        rotation="-90 0 0"
-        align="center"
-        color="#ffffff"
-        width="2.5"
-        opacity="0.6">
-      </a-text>
-
-      <!-- 地址 -->
-      <a-text
-        value="{{ lm.address }}"
-        position="0 0.15 -0.1"
-        rotation="-90 0 0"
-        align="center"
-        color="#81d4fa"
-        width="2.2"
-        opacity="0.8">
-      </a-text>
-
-      <!-- 介紹文字（截短） -->
-      <a-text
-        value="{{ lm.description_zh[:40] }}..."
-        position="0 0.15 0.35"
-        rotation="-90 0 0"
-        align="center"
-        color="#ffffff"
-        width="2"
-        opacity="0.7"
-        wrap-count="22">
-      </a-text>
-
-      <!-- 小測驗提示 -->
-      {% if lm.quiz_question %}
-      <a-text
-        value="🎯 前往地標頁面挑戰小測驗！"
-        position="0 0.15 0.9"
-        rotation="-90 0 0"
-        align="center"
-        color="#ffd54f"
-        width="2">
-      </a-text>
-      {% endif %}
-
-      <!-- 裝飾方塊 -->
-      <a-box
-        position="0 0.6 -0.95"
-        width="2.2" height="0.08" depth="0.08"
-        color="#4fc3f7"
-        opacity="0.8">
-      </a-box>
-
-    </a-marker>
-
-    <a-entity camera></a-entity>
-  </a-scene>
-
+  <script>
+    // 開啟後鏡頭（markerless：直接用相機畫面當 AR 背景）
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false
+        });
+        document.getElementById('cam').srcObject = stream;
+      } catch (e) {
+        document.getElementById('camError').style.display = 'flex';
+      }
+    }
+    startCamera();
+  </script>
 </body>
 </html>

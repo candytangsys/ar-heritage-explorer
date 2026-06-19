@@ -3,18 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>AR GPS 探索</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
-  <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+  <title>GPS 地標導覽</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #000; }
+    body {
+      font-family: 'Segoe UI', 'Noto Sans TC', sans-serif;
+      background: #0f1923; color: #fff; min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
 
     .top-bar {
-      position: fixed; top: 0; left: 0; width: 100%; z-index: 999;
-      background: rgba(15,25,35,0.88); backdrop-filter: blur(8px);
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(15,25,35,0.95); backdrop-filter: blur(8px);
       padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     .back-btn {
       color: #4fc3f7; text-decoration: none; font-size: 14px;
@@ -23,36 +25,79 @@
     .title { color: #fff; font-size: 15px; font-weight: 600; }
     .sub { color: rgba(255,255,255,0.4); font-size: 12px; }
 
-    .status-bar {
-      position: fixed; bottom: 0; left: 0; width: 100%; z-index: 999;
-      background: rgba(15,25,35,0.88); backdrop-filter: blur(8px);
-      padding: 14px 20px;
+    /* 雷達 / 指南針 */
+    .radar-wrap { display: flex; justify-content: center; padding: 24px 0 12px; }
+    .radar {
+      position: relative; width: 230px; height: 230px; border-radius: 50%;
+      background:
+        radial-gradient(circle, rgba(79,195,247,0.08) 0%, transparent 70%),
+        rgba(255,255,255,0.03);
+      border: 1px solid rgba(79,195,247,0.25);
     }
-    .gps-info { color: rgba(255,255,255,0.5); font-size: 12px; margin-bottom: 6px; }
-    .gps-coords { color: #4fc3f7; font-size: 13px; font-weight: 500; }
+    .radar::before, .radar::after {
+      content: ''; position: absolute; background: rgba(79,195,247,0.12);
+    }
+    .radar::before { left: 50%; top: 0; width: 1px; height: 100%; }
+    .radar::after  { top: 50%; left: 0; height: 1px; width: 100%; }
+    .radar-ring {
+      position: absolute; border: 1px solid rgba(79,195,247,0.15); border-radius: 50%;
+    }
+    .ring1 { inset: 38px; }
+    .ring2 { inset: 76px; }
+    .me {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+      width: 14px; height: 14px; border-radius: 50%; background: #4fc3f7;
+      box-shadow: 0 0 12px #4fc3f7; z-index: 3;
+    }
+    .north {
+      position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+      font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 700;
+    }
+    .blip {
+      position: absolute; left: 50%; top: 50%; z-index: 2;
+      width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
+      background: #ffd54f; box-shadow: 0 0 8px rgba(255,213,79,0.7);
+      transition: transform 0.3s ease;
+    }
+    .blip.near { background: #69f0ae; box-shadow: 0 0 10px rgba(105,240,174,0.8); }
 
-    .landmark-list {
-      position: fixed; top: 70px; right: 12px; z-index: 999;
-      display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto;
+    .compass-note {
+      text-align: center; color: rgba(255,255,255,0.4); font-size: 12px; padding: 0 16px 8px;
     }
-    .lm-chip {
-      background: rgba(15,25,35,0.88); border: 1px solid rgba(79,195,247,0.25);
-      border-radius: 8px; padding: 8px 12px; color: #fff; font-size: 12px;
-      text-decoration: none; display: block; max-width: 130px;
+
+    .gps-line {
+      text-align: center; color: #4fc3f7; font-size: 13px; padding-bottom: 8px;
     }
-    .lm-chip .dist { color: #4fc3f7; font-size: 11px; margin-top: 2px; }
+    .gps-line .label { color: rgba(255,255,255,0.4); }
+
+    /* 地標清單 */
+    .list { padding: 8px 14px 90px; }
+    .lm-row {
+      display: flex; align-items: center; gap: 12px; text-decoration: none;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px; padding: 12px 14px; margin-bottom: 10px;
+    }
+    .lm-row .arrow {
+      font-size: 24px; color: #4fc3f7; width: 32px; text-align: center;
+      transition: transform 0.3s ease; flex-shrink: 0;
+    }
+    .lm-row .info { flex: 1; min-width: 0; }
+    .lm-row .name { color: #fff; font-size: 15px; font-weight: 600; }
+    .lm-row .meta { color: rgba(255,255,255,0.45); font-size: 12px; margin-top: 2px; }
+    .lm-row .dist { color: #4fc3f7; font-size: 14px; font-weight: 700; white-space: nowrap; }
+    .lm-row.near .dist { color: #69f0ae; }
+
+    .enable-btn {
+      display: block; margin: 4px auto 16px; background: #4fc3f7; color: #0f1923;
+      border: none; font-size: 13px; font-weight: 700; padding: 10px 18px;
+      border-radius: 8px; cursor: pointer;
+    }
 
     .hint {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: rgba(15,25,35,0.92); border: 1px solid rgba(79,195,247,0.2);
-      border-radius: 14px; padding: 24px 28px; text-align: center;
-      color: #fff; z-index: 998; width: 80%; max-width: 300px;
+      position: fixed; bottom: 0; left: 0; width: 100%; z-index: 9;
+      background: rgba(15,25,35,0.95); border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 12px 16px; color: rgba(255,255,255,0.55); font-size: 12px; text-align: center;
     }
-    .hint .icon { font-size: 36px; margin-bottom: 10px; }
-    .hint p { color: rgba(255,255,255,0.6); font-size: 13px; line-height: 1.6; }
-    .hint.hidden { display: none; }
-
-    a-scene { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
   </style>
 </head>
 <body>
@@ -60,97 +105,42 @@
   <div class="top-bar">
     <a href="/game/map" class="back-btn">← 地圖</a>
     <div>
-      <div class="title">GPS AR 探索模式</div>
-      <div class="sub">走近地標即可看見 AR 標記</div>
-    </div>
-    <div style="display:flex; gap:8px; margin-left:auto;">
-      <a href="/ar/gps"
-         style="background:#4fc3f7; color:#0f1923; padding:6px 12px; border-radius:6px;
-                font-size:12px; font-weight:700; text-decoration:none;">
-        📡 GPS AR
-      </a>
+      <div class="title">GPS 地標導覽</div>
+      <div class="sub">看箭頭與距離走向地標</div>
     </div>
   </div>
 
-  <div class="landmark-list" id="lm-list"></div>
+  <div class="radar-wrap">
+    <div class="radar" id="radar">
+      <div class="north">N</div>
+      <div class="radar-ring ring1"></div>
+      <div class="radar-ring ring2"></div>
+      <div class="me"></div>
+      <!-- blips 由 JS 動態加入 -->
+    </div>
+  </div>
+  <div class="compass-note" id="compassNote">手機水平拿著，雷達會隨你轉動方向</div>
 
-  <div class="hint" id="hint-box">
-    <div class="icon">📡</div>
-    <strong>正在取得 GPS 位置...</strong>
-    <p>請允許瀏覽器存取你的位置，然後將手機鏡頭朝向地標方向</p>
+  <div class="gps-line">
+    <span class="label">目前座標：</span><span id="gps-display">取得中…</span>
   </div>
 
-  <div class="status-bar">
-    <div class="gps-info">目前 GPS 座標</div>
-    <div class="gps-coords" id="gps-display">取得中...</div>
+  <button class="enable-btn" id="compassBtn" style="display:none;">🧭 啟用方向感應</button>
+
+  <div class="list" id="lm-list">
+    <div style="text-align:center; color:rgba(255,255,255,0.4); padding:24px;">
+      正在取得你的位置…
+    </div>
   </div>
 
-  <a-scene
-    vr-mode-ui="enabled: false"
-    arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false"
-    renderer="antialias: true; alpha: true"
-    loading-screen="enabled: false"
-    embedded>
-
-    <a-camera gps-camera rotation-reader></a-camera>
-
-    {% for lm in landmarks %}
-    <a-entity
-      gps-entity-place="latitude: {{ lm.lat }}; longitude: {{ lm.lng }};"
-      look-at="[gps-camera]">
-
-      <!-- 發光圓球 -->
-      <a-sphere
-        position="0 1.5 0"
-        radius="0.4"
-        color="#4fc3f7"
-        opacity="0.85"
-        animation="property: position; to: 0 2.0 0; dur: 1800; dir: alternate; loop: true; easing: easeInOutSine">
-      </a-sphere>
-
-      <!-- 光柱 -->
-      <a-cylinder
-        position="0 0 0"
-        radius="0.05" height="3"
-        color="#4fc3f7"
-        opacity="0.3">
-      </a-cylinder>
-
-      <!-- 地標名稱 -->
-      <a-text
-        value="{{ lm.name_zh }}"
-        position="0 3 0"
-        align="center"
-        color="#ffffff"
-        width="6"
-        look-at="[gps-camera]">
-      </a-text>
-
-      <!-- 點擊連結 -->
-      <a-plane
-        position="0 2.8 0"
-        width="2" height="0.5"
-        color="#0f1923"
-        opacity="0.7"
-        class="clickable"
-        onclick="window.location.href='/landmark/{{ lm.id }}'">
-      </a-plane>
-      <a-text
-        value="點擊查看詳情"
-        position="0 2.8 0.01"
-        align="center"
-        color="#4fc3f7"
-        width="4">
-      </a-text>
-
-    </a-entity>
-    {% endfor %}
-
-  </a-scene>
+  <div class="hint">📍 走近地標約 50 公尺內，記得到地標頁面答題解鎖！</div>
 
   <script>
     const landmarks = {{ landmarks | tojson }};
+    let heading = 0;          // 裝置朝向（0 = 正北）
+    let myLat = null, myLng = null;
 
+    // ── 距離 & 方位 ───────────────────────────
     function getDistance(lat1, lng1, lat2, lng2) {
       const R = 6371000;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -159,33 +149,119 @@
                 Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
+    // 從我指向目標的方位角（0 = 北，順時針）
+    function getBearing(lat1, lng1, lat2, lng2) {
+      const φ1 = lat1*Math.PI/180, φ2 = lat2*Math.PI/180;
+      const Δλ = (lng2-lng1)*Math.PI/180;
+      const y = Math.sin(Δλ) * Math.cos(φ2);
+      const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
+      return (Math.atan2(y, x)*180/Math.PI + 360) % 360;
+    }
+    function fmtDist(d) {
+      return d < 1000 ? `${Math.round(d)} m` : `${(d/1000).toFixed(1)} km`;
+    }
 
+    // ── 渲染清單 + 雷達 ───────────────────────
+    function render() {
+      if (myLat === null) return;
+      const radar = document.getElementById('radar');
+      radar.querySelectorAll('.blip').forEach(b => b.remove());
+
+      const items = landmarks
+        .map(lm => {
+          const dist = getDistance(myLat, myLng, lm.lat, lm.lng);
+          const bearing = getBearing(myLat, myLng, lm.lat, lm.lng);
+          return { ...lm, dist, bearing };
+        })
+        .sort((a, b) => a.dist - b.dist);
+
+      const maxR = 95; // 雷達半徑(px)
+      const list = document.getElementById('lm-list');
+      list.innerHTML = '';
+
+      items.forEach((lm, i) => {
+        const rel = (lm.bearing - heading + 360) % 360;   // 相對裝置朝向
+        const near = lm.dist <= 50;
+
+        // 雷達光點（前 6 個；距離壓縮成對數比例）
+        if (i < 6) {
+          const norm = Math.min(1, Math.log10(lm.dist + 1) / Math.log10(801));
+          const r = norm * maxR;
+          const rad = rel * Math.PI / 180;
+          const x = Math.sin(rad) * r;
+          const y = -Math.cos(rad) * r;
+          const blip = document.createElement('div');
+          blip.className = 'blip' + (near ? ' near' : '');
+          blip.style.transform = `translate(${x}px, ${y}px)`;
+          radar.appendChild(blip);
+        }
+
+        // 清單列（箭頭旋轉指向目標相對方向）
+        const row = document.createElement('a');
+        row.href = `/landmark/${lm.id}`;
+        row.className = 'lm-row' + (near ? ' near' : '');
+        row.innerHTML = `
+          <div class="arrow" style="transform: rotate(${rel}deg)">↑</div>
+          <div class="info">
+            <div class="name">${lm.name_zh}</div>
+            <div class="meta">${near ? '🎯 就在附近，點我答題解鎖' : '點我查看 / 答題解鎖'}</div>
+          </div>
+          <div class="dist">${fmtDist(lm.dist)}</div>`;
+        list.appendChild(row);
+      });
+    }
+
+    // ── GPS ──────────────────────────────────
     if (navigator.geolocation) {
       navigator.geolocation.watchPosition(pos => {
-        const { latitude: lat, longitude: lng } = pos.coords;
+        myLat = pos.coords.latitude;
+        myLng = pos.coords.longitude;
         document.getElementById('gps-display').textContent =
-          `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        document.getElementById('hint-box').classList.add('hidden');
+          `${myLat.toFixed(5)}, ${myLng.toFixed(5)}`;
+        render();
+      }, () => {
+        document.getElementById('gps-display').textContent = 'GPS 取得失敗，請允許定位權限';
+      }, { enableHighAccuracy: true, maximumAge: 2000 });
+    } else {
+      document.getElementById('gps-display').textContent = '此裝置不支援定位';
+    }
 
-        const list = document.getElementById('lm-list');
-        list.innerHTML = '';
-        landmarks
-          .map(lm => ({ ...lm, dist: getDistance(lat, lng, lm.lat, lm.lng) }))
-          .sort((a, b) => a.dist - b.dist)
-          .slice(0, 5)
-          .forEach(lm => {
-            const dist = lm.dist < 1000
-              ? `${Math.round(lm.dist)} 公尺`
-              : `${(lm.dist/1000).toFixed(1)} 公里`;
-            list.innerHTML += `
-              <a href="/ar/marker/${lm.id}" class="lm-chip">
-                ${lm.name_zh}
-                <div class="dist">📍 ${dist}</div>
-              </a>`;
-          });
-      }, err => {
-        document.getElementById('gps-display').textContent = 'GPS 取得失敗';
-      }, { enableHighAccuracy: true });
+    // ── 羅盤 / 方向感應 ───────────────────────
+    function onOrientation(e) {
+      // iOS 提供 webkitCompassHeading（已是正北為 0）
+      if (typeof e.webkitCompassHeading === 'number') {
+        heading = e.webkitCompassHeading;
+      } else if (e.alpha !== null) {
+        heading = (360 - e.alpha) % 360;  // Android：alpha 為逆時針
+      }
+      document.getElementById('radar').querySelector('.north').style.transform =
+        `translateX(-50%) rotate(${-heading}deg)`;
+      render();
+    }
+
+    function enableCompass() {
+      window.addEventListener('deviceorientationabsolute', onOrientation, true);
+      window.addEventListener('deviceorientation', onOrientation, true);
+      document.getElementById('compassBtn').style.display = 'none';
+    }
+
+    // iOS 13+ 需使用者手勢觸發權限請求
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      const btn = document.getElementById('compassBtn');
+      btn.style.display = 'block';
+      btn.addEventListener('click', async () => {
+        try {
+          const res = await DeviceOrientationEvent.requestPermission();
+          if (res === 'granted') enableCompass();
+          else document.getElementById('compassNote').textContent = '未授權方向感應，箭頭以正北為基準';
+        } catch (_) {
+          document.getElementById('compassNote').textContent = '此裝置無法使用方向感應';
+        }
+      });
+    } else {
+      // Android / 桌機：直接啟用
+      enableCompass();
     }
   </script>
 </body>
