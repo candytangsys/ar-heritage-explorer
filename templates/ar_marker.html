@@ -76,14 +76,17 @@
       border: 1px solid rgba(79,195,247,0.4);
     }
 
-    /* 鏡頭失敗時的提示 */
+    /* 鏡頭失敗：頂部提示條（不遮住資訊卡） */
     .cam-error {
-      position: fixed; inset: 0; z-index: 9; display: none;
-      flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; color: #fff; padding: 30px; background: #0f1923;
+      position: fixed; top: 64px; left: 50%; transform: translateX(-50%);
+      z-index: 9; display: none; width: 90%; max-width: 380px;
+      background: rgba(244,67,54,0.14); border: 1px solid rgba(244,67,54,0.45);
+      border-radius: 10px; padding: 10px 14px; text-align: center; color: #fff;
     }
-    .cam-error .icon { font-size: 48px; margin-bottom: 14px; }
-    .cam-error p { color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.7; margin-top: 8px; }
+    .cam-error strong { font-size: 14px; }
+    .cam-error p { color: rgba(255,255,255,0.65); font-size: 12px; line-height: 1.6; margin-top: 4px; }
+    /* 沒有鏡頭時，body 用純色背景讓資訊卡清楚 */
+    body.no-cam { background: radial-gradient(circle at 50% 40%, #16283a, #0f1923); }
   </style>
 </head>
 <body>
@@ -116,9 +119,8 @@
   </div>
 
   <div class="cam-error" id="camError">
-    <div class="icon">📷</div>
-    <strong>無法開啟鏡頭</strong>
-    <p>請確認已允許瀏覽器使用相機權限，<br>並在 HTTPS 網址下開啟此頁面。<br>地標資訊仍可在下方查看。</p>
+    <strong>📷 未開啟鏡頭</strong>
+    <p>此裝置沒有相機或未授權（電腦常見）。請用手機開啟並允許相機權限以體驗 AR；地標資訊如下。</p>
   </div>
 
   <script>
@@ -131,7 +133,8 @@
         });
         document.getElementById('cam').srcObject = stream;
       } catch (e) {
-        document.getElementById('camError').style.display = 'flex';
+        document.getElementById('camError').style.display = 'block';
+        document.body.classList.add('no-cam');
       }
     }
     startCamera();
