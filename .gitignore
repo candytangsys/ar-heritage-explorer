@@ -3,3 +3,9 @@ __pycache__/
 *.pyc
 heritage.db
 !static/uploads/
+
+# ===== Secrets =====
+*.pem
+*.key
+secrets.json
+config.local.*

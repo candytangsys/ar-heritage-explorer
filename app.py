@@ -241,6 +241,7 @@ def game_unlock():
     landmark_id = data.get('landmark_id')
     user_lat = data.get('lat')
     user_lng = data.get('lng')
+    scanned = bool(data.get('scanned', False))  # AI 鏡頭辨識成功（前端驗證）
 
     conn = sqlite3.connect(DB_PATH)
     lm = conn.execute("SELECT lat, lng FROM landmarks WHERE id=?", (landmark_id,)).fetchone()
@@ -248,15 +249,16 @@ def game_unlock():
         conn.close()
         return jsonify({'status': 'error', 'message': '找不到此地標'}), 404
 
-    # 距離驗證（伺服器端，避免直接呼叫 API 作弊）
-    if user_lat is None or user_lng is None:
-        conn.close()
-        return jsonify({'status': 'no_location', 'message': '需要定位資訊才能解鎖'}), 400
-    dist = haversine_m(float(user_lat), float(user_lng), lm[0], lm[1])
-    if dist > UNLOCK_RADIUS_M:
-        conn.close()
-        return jsonify({'status': 'too_far', 'distance': round(dist),
-                        'radius': UNLOCK_RADIUS_M, 'message': '尚未抵達地標範圍'})
+    # 解鎖條件：AI 鏡頭辨識成功，或 GPS 在 UNLOCK_RADIUS_M 公尺內（任一）
+    if not scanned:
+        if user_lat is None or user_lng is None:
+            conn.close()
+            return jsonify({'status': 'no_location', 'message': '需要鏡頭辨識或定位才能解鎖'}), 400
+        dist = haversine_m(float(user_lat), float(user_lng), lm[0], lm[1])
+        if dist > UNLOCK_RADIUS_M:
+            conn.close()
+            return jsonify({'status': 'too_far', 'distance': round(dist),
+                            'radius': UNLOCK_RADIUS_M, 'message': '尚未抵達地標範圍'})
 
     existing = conn.execute(
         "SELECT id FROM player_progress WHERE device_id=? AND landmark_id=?",
